@@ -1,1 +1,6 @@
-"# fl_bot" 
+# fl_bot
+
+```
+npm i
+node index.js
+```

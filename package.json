@@ -1,7 +1,7 @@
 {
   "name": "fl_bot",
   "version": "1.0.0",
-  "description": "\"# fl_bot\"",
+  "description": "bot for vk",
   "main": "index.js",
   "dependencies": {
     "dotenv": "^6.0.0",
@@ -10,7 +10,8 @@
     "node-vk-bot-api": "^2.1.1",
     "vk-io": "^4.0.0-rc.2",
     "winston": "^3.1.0",
-    "winston-daily-rotate-file": "^3.3.2"
+    "winston-daily-rotate-file": "^3.3.2",
+    "readdirsync2": "https://github.com/dragin96/readdirSync2.git"
   },
   "devDependencies": {},
   "scripts": {
