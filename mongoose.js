@@ -38,9 +38,12 @@ const Mongo = module.exports.Mongo = {
     getStudentById: (id) => {
         return new Promise((resolve, reject) => {
             Student.findOne({
-                _id: id
+                id: id
             }, (err, student) => {
-                if (student === null) return reject("last student is empty");
+                if (student === null) {
+                    logger.info("student width id " + id + " not found");
+                    return resolve(null);
+                }
                 if (err) return reject(err);
                 resolve(student);
             });
