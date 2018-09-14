@@ -8,10 +8,11 @@
     "moment": "^2.22.2",
     "mongoose": "^5.2.14",
     "node-vk-bot-api": "^2.1.1",
+    "readdirsync2": "https://github.com/dragin96/readdirSync2.git",
     "vk-io": "^4.0.0-rc.2",
     "winston": "^3.1.0",
     "winston-daily-rotate-file": "^3.3.2",
-    "readdirsync2": "https://github.com/dragin96/readdirSync2.git"
+    "wolfram-alpha-api": "https://products.wolframalpha.com/api/libraries/javascript/wolfram-alpha-api-1.0.0-rc.1.tgz"
   },
   "devDependencies": {},
   "scripts": {
