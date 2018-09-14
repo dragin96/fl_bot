@@ -8,7 +8,7 @@ module.exports.setLogger=function(_logger){
 };
 
 var studentSchema = mongoose.Schema({
-    id: {
+    vk_id: {
         type: Number,
         index: {
             unique: true,
@@ -19,14 +19,24 @@ var studentSchema = mongoose.Schema({
     class_lvl: {
         type: Number
     },
+    name: {
+        type: String,
+        required: true
+    },
     reg_date: {
         type: Date,
         default: Date.now
     },
-    statistic: []
+    statistic: mongoose.Schema.Types.Mixed
 });
 
-
+studentSchema.methods.saveStatistic = function (subject) {
+    if(this.statistic[subject] === undefined) {
+        this.statistic[subject] = 1;
+    } else {
+        this.statistic[subject]++;
+    }
+};
 
 studentSchema.methods.IsInitState = function () {
     return this.state === 'init';

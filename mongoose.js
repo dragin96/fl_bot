@@ -62,14 +62,15 @@ const Mongo = module.exports.Mongo = {
         });
     },
     //Создаем студент
-    initStudent: async (id, class_lvl) => {
+    initStudent: async (id, class_lvl, name) => {
         let student = await Mongo.getStudentById(id).catch(logger.info);
         if (student) {
             return logger.info("mongoose.js >> Невозможно создать, уже существует");
         }
         let new_student = new Student({
-            _id: id,
+            vk_id: id,
             class_lvl: class_lvl,
+            name
         });
         Mongo.saveStudent(new_student);
     }
