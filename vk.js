@@ -70,7 +70,7 @@ vk.setTwoFactorHandler(async (payload, retry) => {
 
 
 
-const vk_api = module.exports.vk_api = {
+const vk_api = {
 	implicitFlow: auth.implicitFlowUser(),
 	/*Запоминаем полученный токен после авторзации*/
 	setToken: (token) => {
@@ -90,35 +90,33 @@ const vk_api = module.exports.vk_api = {
 		});
 		return Boolean(response);
 	},
-	isHaveFeedback: async (id) => {
-		async function isFeedback(start = 0) {
-			let res = await vk.api.board.getComments({
-				group_id: 25892529, //process.env.vk_group_id,
-				topic_id: 29438053, //process.env.vk_topic
-				count: 100,
-				start_comment_id: start
-			})
-			const users = res.items;
-			//пришел из топика последний пост возвратим false
-			if (users.length < 2) {
-				return false;
-			}
-			users.forEach(async (user, i, arr) => {
-				console.log(user.from_id);
-				if (id == user.from_id) {
-					return true;
-				}
-				if (arr.length - 1 == i) {
-					result = await isFeedback(user.id);
-				}
-			});
-			return result;
+	isHaveFeedback: async (id, start = 0) => {
+		let res = await vk.api.board.getComments({
+			group_id: 25892529, //process.env.vk_group_id,
+			topic_id: 29438053, //process.env.vk_topic
+			count: 100,
+			start_comment_id: start
+		})
+		const users = res.items;
+		//пришел из топика последний пост возвратим false
+		if (users.length < 2) {
+			console.log(false);
+			return false;
 		}
-		let res = await isFeedback();
-		return res;
+		for (let i = 0; i < users.length; i++) {
+			const user = users[i];
+			console.log(user.from_id);
+			if (id == user.from_id) {
+				return true;
+			}
+			if (users.length - 1 == i) {
+				vk_api.isHaveFeedback(id, user.id);
+			}
+		}
 	}
 };
 
+module.exports.vk_api = vk_api
 
 vk_api.setToken("b6a451703cc1122dfd72b04a3bf43904c88a668fcd9bd21ccc80e27006f734a276d3551af92a6c8bb33c1");
 
