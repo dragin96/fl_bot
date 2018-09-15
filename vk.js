@@ -68,182 +68,54 @@ vk.setTwoFactorHandler(async (payload, retry) => {
 	}
 });
 
-const vk_api =module.exports.vk_api= {
+
+
+const vk_api = module.exports.vk_api = {
 	implicitFlow: auth.implicitFlowUser(),
 	/*Запоминаем полученный токен после авторзации*/
-	setToken: (token)=>{
+	setToken: (token) => {
 		vk.setToken(token);
 	},
-	/*Создаем пост на стене сообщества*/
-	createPost: async  (message, poll_id)=> {
-		const response = await vk.api.wall.post({
-			owner_id: owner_id,
-			from_group: 1, //от имени сообщества,
-			message: message,
-			attachments: poll_id? `poll${owner_id}_${poll_id}` : null //прикрепляем опрос
+	getName: async (id) => {
+		const response = await vk.api.users.get({
+			user_ids: id
 		});
-
-		return response;
+		return response[0].first_name;
 	},
-	/*Последний пост со стены сообщества*/
-	getLastPost: async  ()=> {
-		const response = await vk.api.wall.get({
-			owner_id: owner_id,
-			count: 5
+	isMemberGroup: async (id) => {
+		const response = await vk.api.groups.isMember({
+			group_id: process.env.vk_group_id,
+			user_id: id,
+			extended: 0
 		});
-		return response;
+		return Boolean(response);
 	},
-	/*Создание опроса*/
-	createPoll: async  (question, add_answers) => {
-		const response = await vk.api.polls.create({
-			question: question,
-			owner_id: owner_id,
-			add_answers: JSON.stringify(add_answers)
-		});
-		await vk_api.createPost("", response.id);
-	},
-	/*Информация об опросе по ид*/
-	getPoll: async (id)=> {
-		const response = await vk.api.polls.getById({
-			owner_id: owner_id,
-			poll_id: id
-		});
-		logger.info("vk.js>>","getPoll", response);
-	},
-	getComments: async (id)=> {
-		const response = await vk.api.wall.getComments({
-			owner_id: owner_id,
-			post_id: id,
-			need_likes: false,
-			count: 60
-		});
-		return response;
-		//logger.info("vk.js>>","getComments", response);
-	},
-	getPlayersFromComments: async ()=>{
-		let data=await vk_api.getLastPost();
-		if(!data){
-			logger.warn("vk.js>> is no data", data);
-			return null;
-		}
-		if(!data.count){
-			return null;
-		}
-		if(!data.items.length){
-			logger.warn('Записи на стене отсутствуют');
-			return null;
-		}
-		let item=null;
-		for(let i=0; i<5; i++){
-			if(~data.items[i].text.search("По результатам голосования следующей")){
-				item=data.items[i];
-				break;
+	isHaveFeedback: async (id) => {
+		async function isFeedback(start = 0) {
+			let res = await vk.api.board.getComments({
+				group_id: 25892529, //process.env.vk_group_id,
+				topic_id: 29438053, //process.env.vk_topic
+				count: 100,
+				start_comment_id: start
+			})
+			const users = res.items;
+			//пришел из топика последний пост возвратим false
+			if (users.length < 2) {
+				return false;
 			}
+			users.forEach(async (user, i, arr) => {
+				console.log(user.from_id);
+				if (id == user.from_id) {
+					return true;
+				}
+				if (arr.length - 1 == i) {
+					result = await isFeedback(user.id);
+				}
+			});
+			return result;
 		}
-		if(item.comments){
-			let comments=await vk_api.getComments(item.id);
-			let players=[];
-			for(let comment of comments.items){
-				
-				comment.text=comment.text.replace(/\[\[id\d+\|/, '[');
-				console.log("comment",comment.text);
-				let splt=comment.text.split('\n');
-				for(let _splt of splt){
-					let splt_comma=_splt.split(',');
-					for(let _splt_comma of splt_comma){
-						players.push(_splt_comma.trim().replace('[@', '').replace(/\]/g, ''));
-					}
-				}				
-			}
-			return players;
-		}
-		return null;
-	},
-	getLastPoll: async ()=> {
-		let data=await vk_api.getLastPost();
-		if(!data){
-			logger.warn("vk.js>> is no data", data);
-			return null;
-		}
-		if(!data.count){
-			return null;
-		}
-		let item=null;
-		if(!data.items.length){
-			logger.warn('Записи на стене отсутствуют');
-			return null;
-		}	
-		for(let i=0; i<5; i++){
-			if(data.items[i].attachments && data.items[i].attachments[0].type=="poll"){
-				item=data.items[i];
-				break;
-			}
-		}
-		
-
-		if(!item){
-			logger.error('vk.js >> no item');
-			return  null;
-		}
-		if(item.attachments && item.attachments[0].type=="poll"){
-			return item;
-		} else {
-			logger.info("vk.js>>",'Последние два сообщения на стене не являются голосованием');
-			return null;
-		}
-	},
-	isPollingState: async ()=>{
-		let item=await vk_api.getLastPoll();
-		return item !==null;
-	},
-	getPollingResult: async ()=>{
-		let item=await vk_api.getLastPoll();
-		if(!item){
-			return null;
-		}
-		let answers=item.attachments[0].poll.answers;
-		let result=answers.reduce(function(prev, current) {
-			return (prev.votes > current.votes) ? prev : current;
-		});
-
-		return result.text;
-	},
-	getPollingCreatedDate: async()=>{
-
-		let item=await vk_api.getLastPoll();
-		if(!item){
-			return null;
-		}
-		return item.attachments[0].poll.created;
-	},
-	getExtraText: async()=>{
-		let extra_text= await vk_api.getPollingResult();
-		return extra_text;
-		
-	},
-	createPostByMaxRate: async(date, min_players, cost, extra_text)=>{
-		
-		if(!extra_text){
-			logger.info("vk.js>>",'createPostByMaxRate: bad extra_text', extra_text);
-			return false;
-		}
-		let response=await vk_api.createPost(
-		`По результатам голосования следующей экстрой для закупа становится: ${extra_text}!
-
-Время проведения закупа при наборе минимального количества людей: ${new Date(date).toLocaleDateString()} в 19:00.
-Минимальное количество участников: ${min_players}.
-Сумма монет для взноса: ${cost}.
-
-Внимание, закуп будет проведен только при наборе минимального количества участников, так же, после вступления в клан, у вас будет только десять минут для внесения оплаты
-
-Записаться на закуп вы можете через нашего бота в игре [@Автозакупы_bestmafia], оставив комментарий с точной копией своего ника под данной записью или написав сообщение в это сообщество.`);
-
-		if(!response){
-			logger.info("vk.js>>",'createPostByMaxRate: bad response', response);
-			return false;
-		}
-		return true;
-
+		let res = await isFeedback();
+		return res;
 	}
 };
 
