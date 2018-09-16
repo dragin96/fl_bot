@@ -77,9 +77,11 @@ const vk_api = {
 		vk.setToken(token);
 	},
 	getName: async (id) => {
+		console.log('get name for id', id);
 		const response = await vk.api.users.get({
 			user_ids: id
 		});
+		console.log('name is', response[0].first_name);
 		return response[0].first_name;
 	},
 	isMemberGroup: async (id) => {

@@ -16,12 +16,10 @@ function getFile(path) {
  * @returns {Object}
  */
 function structFile(path) {
-    let res = {}
+    let res = {};
     let dirs = getDir(path);
-    console.log(dirs);
-    
     dirs.forEach(dir => {
-        pathJoin = path_module.join(path, dir);
+        let pathJoin = path_module.join(path, dir);
         res[dir] = structFile(pathJoin);
         if (Object.keys(res[dir]).length == 0){
             res[dir] = getFile(pathJoin);
@@ -29,6 +27,6 @@ function structFile(path) {
     });
     return res;
 }
-exports.structFile = structFile;
+module.exports.structFile = structFile;
 // let url = "./test/"
 // console.log(structFile(url));

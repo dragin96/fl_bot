@@ -1,17 +1,19 @@
 const winston = require('winston');
-const moment = require('moment');
+//const moment = require('moment');
 
 
 
-const tsFormat = () => moment().format('YYYY-MM-DD hh:mm:ss').trim();
+//const tsFormat = () => moment().format('YYYY-MM-DD hh:mm:ss').trim();
 const logger = winston.createLogger({
 	level: 'debug',
-  format: winston.format.json(),
+	format: winston.format.json(),
 	transports: [
-	  new winston.transports.Console(),
-	  new winston.transports.File({ filename: 'combined.log' })
+		new winston.transports.Console(),
+		new winston.transports.File({
+			filename: './logs/combined.log'
+		})
 	]
-  });
+});
 module.exports.logger = logger;
 /*
 module.exports.logger =  logger = winston.createLogger({

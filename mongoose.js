@@ -38,7 +38,7 @@ const Mongo = module.exports.Mongo = {
     getStudentById: (id) => {
         return new Promise((resolve, reject) => {
             Student.findOne({
-                id: id
+                vk_id: id
             }, (err, student) => {
                 if (student === null) {
                     logger.info("student width id " + id + " not found");
@@ -67,8 +67,9 @@ const Mongo = module.exports.Mongo = {
         if (student) {
             return logger.info("mongoose.js >> Невозможно создать, уже существует");
         }
+        console.log("TEST ID", id, +id);
         let new_student = new Student({
-            vk_id: id,
+            vk_id: +id,
             class_lvl: class_lvl,
             name
         });

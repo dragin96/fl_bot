@@ -8,7 +8,7 @@ if (result.error) {
 logger.info("init config", result.parsed);
 
 const schemes=require('./schemes.js');
-schemes.setLogger(logger);
+//schemes.setLogger(logger);
 
 
 

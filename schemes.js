@@ -1,11 +1,7 @@
 
 var mongoose = require('./mongoose.js').mongoose;
 var db=require('./mongoose.js').db;
-let logger;
-/*Для лога*/
-module.exports.setLogger=function(_logger){
-	logger=_logger;
-};
+
 
 var studentSchema = mongoose.Schema({
     vk_id: {
@@ -31,6 +27,7 @@ var studentSchema = mongoose.Schema({
 });
 
 studentSchema.methods.saveStatistic = function (subject) {
+    console.log("SAVE STATISCIKS", subject);
     if(this.statistic[subject] === undefined) {
         this.statistic[subject] = 1;
     } else {
