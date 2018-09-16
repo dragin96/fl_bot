@@ -5,6 +5,7 @@
   "main": "index.js",
   "dependencies": {
     "dotenv": "^6.0.0",
+    "emailjs": "^2.2.0",
     "moment": "^2.22.2",
     "mongoose": "^5.2.14",
     "node-vk-bot-api": "^2.1.1",
