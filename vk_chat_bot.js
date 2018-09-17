@@ -102,6 +102,7 @@ module.exports.startVkChatbot = function (logger, Mongo) {
                 break;
             case 'need_change_class':
                 keyboards.push([Markup.button('Сменить класс', 'negative', 'stats')]);
+                //keyboards.push([Markup.button('Инструкция', 'positive', 'stats')]);
                 break;
             case 'select_object':
                 if (books[class_lvl] === undefined) {

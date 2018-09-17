@@ -119,7 +119,8 @@ module.exports.init_print_menu_scene = function (getText, printMenu, vk_api, boo
             }
             const res = printMenu(ctx);
             if (res === null) {
-                let text = `Извини, похоже, мы не сможем тебе помочь, у нас нет учебников для ${ctx.session.class_lvl} класса. Попробуй изменить номер класса или сообщи моим создателям об этой неприятности в группе`;
+                let text = `Извини, похоже, мы не сможем тебе помочь, у нас нет учебников для ${ctx.session.class_lvl} класса. Попробуй изменить номер класса или сообщи моим создателям об этой неприятности в группе &#128519;. Ссылка:
+                https://vk.com/gdz_bot`;
                 ctx.session.stage = 'need_change_class';
                 let keyboards = getButtons(ctx);
                 return ctx.reply(text, null, Markup.keyboard(keyboards).oneTime());
