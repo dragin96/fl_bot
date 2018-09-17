@@ -109,8 +109,9 @@ module.exports.startVkChatbot = function (logger, Mongo) {
                 }
                 keys = Object.keys(books[class_lvl]);
 
-                keyboards.push([Markup.button('Экстренная помощь', 'positive', 'stats'), Markup.button('Инструкция', 'positive'), Markup.button('Добавить предмет/автора', 'positive', 'stats')]);
-                keyboards.push([Markup.button('Сменить класс', 'negative')]);
+                keyboards.push([Markup.button('Экстренная помощь', 'positive', 'stats'), Markup.button('Добавить предмет/автора', 'positive', 'stats')]);
+                keyboards.push([Markup.button('Сменить класс', 'negative'), Markup.button('Инструкция', 'positive')]);
+                
                 break;
             case 'author':
                 if (books[class_lvl][subject] === undefined) {
@@ -118,8 +119,8 @@ module.exports.startVkChatbot = function (logger, Mongo) {
                     return null;
                 }
                 keys = Object.keys(books[class_lvl][subject]);
-                keyboards.push([Markup.button('Экстренная помощь', 'positive', 'stats'), Markup.button('Инструкция', 'positive'), Markup.button('Добавить предмет/автора', 'positive', 'stats')]);
-                keyboards.push([Markup.button('Сменить предмет', 'negative')]);
+                keyboards.push([Markup.button('Экстренная помощь', 'positive', 'stats'), Markup.button('Добавить предмет/автора', 'positive', 'stats')]);
+                keyboards.push([Markup.button('Сменить предмет', 'negative'), Markup.button('Инструкция', 'positive')]);
                 break;
             case 'part':
                 if (books[class_lvl][subject][author] === undefined) {
@@ -127,7 +128,7 @@ module.exports.startVkChatbot = function (logger, Mongo) {
                     return null;
                 }
                 keys = Object.keys(books[class_lvl][subject][author]);
-                keyboards.push([Markup.button('Сменить автора', 'negative')]);
+               
                 break;
             case 'task':
                 if (books[class_lvl][subject][author][part] === undefined) {
