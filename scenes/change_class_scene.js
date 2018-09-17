@@ -6,7 +6,7 @@ module.exports.init_change_class_scene = function () {
     const scene = new Scene('change_class',
         (ctx) => {
             console.log('first change_class scene');
-           ctx.reply('На какой класс? (смайлик) Введи цифру');
+           ctx.reply('На какой класс? &#128521; Введи цифру');
            ctx.scene.next();
            console.log('first change_class scene end');
         //ctx.reply('Введи номер класса');
