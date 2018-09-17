@@ -37,6 +37,6 @@ function structFile(path) {
 	});
 	return res;
 }
-//module.exports.structFile = structFile;
-let url = "./test/"
-console.log(structFile(url)[1]['автор1']['учебник1']);
+module.exports.structFile = structFile;
+// let url = "./test/"
+// console.log(structFile(url)[1]['автор1']['учебник1']);
