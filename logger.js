@@ -5,7 +5,6 @@ const winston = require('winston');
 
 //const tsFormat = () => moment().format('YYYY-MM-DD hh:mm:ss').trim();
 const logger = winston.createLogger({
-	level: 'debug',
 	format: winston.format.json(),
 	transports: [
 		new winston.transports.Console(),

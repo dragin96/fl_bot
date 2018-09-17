@@ -17,7 +17,6 @@ module.exports.init_change_class_scene = function (Mongo) {
                 ctx.session.class_lvl = +ctx.message.text;
                 console.log("good class");
                 ctx.session.student.changeClass(ctx.session.class_lvl);
-                Mongo.saveStudent(ctx.session.student);
 
                 ctx.reply('Я запомнил твой новый класс!');
                 console.log("remember");

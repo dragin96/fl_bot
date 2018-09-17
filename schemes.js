@@ -1,6 +1,5 @@
-
 var mongoose = require('./mongoose.js').mongoose;
-var db=require('./mongoose.js').db;
+var db = require('./mongoose.js').db;
 
 
 var studentSchema = mongoose.Schema({
@@ -9,7 +8,7 @@ var studentSchema = mongoose.Schema({
         index: {
             unique: true,
             dropDups: true,
-			index: true,
+            index: true,
         }
     },
     class_lvl: {
@@ -23,38 +22,30 @@ var studentSchema = mongoose.Schema({
         type: Date,
         default: Date.now
     },
-    statistic: {
-        type: mongoose.Schema.Types.Mixed,
-        required: true
-    }
+    statistic: mongoose.Schema.Types.Mixed
 });
 
 studentSchema.methods.changeClass = function (new_class) {
     this.class_lvl = new_class;
+    this.save();
+};
+studentSchema.methods.getStatistic = function () {
+    return this.statistic;
 };
 
 studentSchema.methods.saveStatistic = function (subject) {
-    console.log("SAVE STATISCIKS", subject, this.statistic);
-    if(!this.statistic){
+    if (!this.statistic) {
         this.statistic = {};
     }
-    console.log("this.statistic", this.statistic);
-    if(this.statistic[subject] === undefined) {
+    if (this.statistic[subject] === undefined) {
         this.statistic[subject] = 1;
     } else {
         this.statistic[subject]++;
     }
-    console.log("this.statistic", this.statistic);
+    this.markModified('statistic');
+    this.save();
 };
 
-studentSchema.methods.saveStatistic = function (subject) {
-    console.log("SAVE STATISCIKS", subject);
-    if(this.statistic[subject] === undefined) {
-        this.statistic[subject] = 1;
-    } else {
-        this.statistic[subject]++;
-    }
-};
 studentSchema.methods.IsInitState = function () {
     return this.state === 'init';
 };
@@ -62,4 +53,4 @@ studentSchema.methods.IsClosedState = function () {
     return this.state === 'closed';
 };
 
-module.exports.Student = db.model("Student", studentSchema);
+module.exports.Student = db.model('Student', studentSchema);

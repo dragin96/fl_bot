@@ -41,7 +41,7 @@ const Mongo = module.exports.Mongo = {
                 vk_id: id
             }, (err, student) => {
                 if (student === null) {
-                    logger.info("student width id " + id + " not found");
+                    logger.info('student width id ' + id + ' not found');
                     return resolve(null);
                 }
                 if (err) return reject(err);
@@ -53,31 +53,37 @@ const Mongo = module.exports.Mongo = {
         return new Promise((resolve) => {
             student.save(function (err) {
                 if (err) {
+                    console.log('save student error', err);
                     logger.error(err);
                     return resolve();
                 }
-                logger.info("mongoose.js >> successfull save");
+                logger.info('mongoose.js >> successfull save');
                 resolve();
             });
         });
     },
     //Создаем студент
     initStudent: async (id, class_lvl, name) => {
-        let student = await Mongo.getStudentById(id).catch(logger.info);
-        if (student) {
-            return logger.info("mongoose.js >> Невозможно создать, уже существует");
-        }
-       
-        let new_student = new Student({
-            vk_id: +id,
-            class_lvl: class_lvl,
-            name,
-            statistic: { subject: null }
+        return new Promise(async resolve =>{
+            let student = await Mongo.getStudentById(id).catch(logger.info);
+            if (student) {
+                resolve(null);
+                return logger.info('mongoose.js >> Невозможно создать, уже существует');
+            }
+           
+            let new_student = new Student({
+                vk_id: +id,
+                class_lvl: class_lvl,
+                name,
+                statistic: { }
+            });
+            logger.info(new_student);
+            Mongo.saveStudent(new_student);
+            resolve(new_student);
         });
-        logger.info(new_student);
-        Mongo.saveStudent(new_student);
+       
     }
 };
 db.once('open', function callback() {
-    logger.info("mongoose.js >> Connected to DB!");
+    logger.info('mongoose.js >> Connected to DB!');
 });

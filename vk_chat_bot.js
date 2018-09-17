@@ -9,40 +9,40 @@ const vk_api = vk.vk_api;
 
 const books =  require('./dirRead.js').structFile(process.env.books_path);
 
-//console.log("BOOKS", books);
+//console.log('BOOKS', books);
 /*const books = {
-    "1": {
-        "Математика": {
-            "Автор": {
-                "Раздел 1": {
-                    "1": "1.jpg",
-                    "2": "2.jpg"
+    '1': {
+        'Математика': {
+            'Автор': {
+                'Раздел 1': {
+                    '1': '1.jpg',
+                    '2': '2.jpg'
                 }
             }
         },
-        "Физика": {
-            "Автор": {
-                "Раздел 1": {
-                    "1": "1.jpg",
-                    "2": "2.jpg"
+        'Физика': {
+            'Автор': {
+                'Раздел 1': {
+                    '1': '1.jpg',
+                    '2': '2.jpg'
                 }
             }
         }
     },
-    "2": {
-        "Математика": {
-            "Макарычев": {
-                "Раздел 1": {
-                    "1": "1.jpg",
-                    "2": "2.jpg"
+    '2': {
+        'Математика': {
+            'Макарычев': {
+                'Раздел 1': {
+                    '1': '1.jpg',
+                    '2': '2.jpg'
                 }
             }
         },
-        "Русский": {
-            "Автор": {
-                "Раздел 1": {
-                    "1": "1.jpg",
-                    "2": "2.jpg"
+        'Русский': {
+            'Автор': {
+                'Раздел 1': {
+                    '1': '1.jpg',
+                    '2': '2.jpg'
                 }
             }
         }
@@ -75,52 +75,52 @@ module.exports.startVkChatbot = function (logger, Mongo) {
         });
         
         switch (stage) {
-            case "start":
-                text = `Выбери необходимое действие`;
-                keyboards.push([Markup.button("Получить ответ", 'positive', "stats")]);
-                keyboards.push([Markup.button("Статистика", 'positive', "stats"), Markup.button("Сменить класс", 'positive')]);
+            case 'start':
+                text = 'Выбери необходимое действие';
+                keyboards.push([Markup.button('Получить ответ', 'primary', 'stats')]);
+                keyboards.push([Markup.button('Статистика', 'primary', 'stats'), Markup.button('Сменить класс', 'primary')]);
                 break;
-            case "select_object":
+            case 'select_object':
                 if (books[class_lvl] === undefined) {
-                    logger.error(class_lvl + " class lvl not found");
+                    logger.error(class_lvl + ' class lvl not found');
                     return null;
                 }
                 keys = Object.keys(books[class_lvl]);
-                keyboards.push([Markup.button("Сменить класс", 'positive'), Markup.button("Отмена", 'positive')]);
+                keyboards.push([Markup.button('Сменить класс', 'primary'), Markup.button('Отмена', 'primary')]);
                 break;
-            case "author":
+            case 'author':
                 if (books[class_lvl][subject] === undefined) {
                     logger.error(`subject ${subject} not found in ${class_lvl}`);
                     return null;
                 }
                 keys = Object.keys(books[class_lvl][subject]);
-                keyboards.push([Markup.button("Вернуться", 'positive')]);
+                keyboards.push([Markup.button('Вернуться', 'primary')]);
                 break;
-            case "part":
+            case 'part':
                 if (books[class_lvl][subject][author] === undefined) {
                     logger.error(`author ${author} not found in ${class_lvl}, ${subject}`);
                     return null;
                 }
                 keys = Object.keys(books[class_lvl][subject][author]);
-                keyboards.push([Markup.button("Вернуться", 'positive')]);
+                keyboards.push([Markup.button('Вернуться', 'primary')]);
                 break;
-            case "task":
+            case 'task':
                 if (books[class_lvl][subject][author][part] === undefined) {
                     logger.error(`${part} not found in ${class_lvl}, ${subject}, ${part}`);
                     return null;
                 }
-                keyboards.push([Markup.button("Вернуться", 'positive')]);
-                ctx.reply(getText('print_menu_task', {}));
+                keyboards.push([Markup.button('Вернуться', 'primary')]);
+                ctx.reply(getText('print_menu_task', {}), null, Markup.keyboard(keyboards).oneTime());
                 return true;
-            case "get_answer":
-                text = `Можешь ввести номер следующего задания этого же учебника или выбрать другой`;
-                keyboards.push([Markup.button("Вернуться", 'positive')]);
-                keys= ["Сменить предмет", "Сменить класс"];
+            case 'get_answer':
+                text = 'Можешь ввести номер следующего задания этого же учебника или выбрать другой';
+                keyboards.push([Markup.button('Вернуться', 'primary')]);
+                keys= ['Сменить предмет', 'Сменить класс'];
                 break;
         }
         // console.log('join printMenu keys');
         for (let key of keys) {
-            keyboards_submassive.push(Markup.button(key, 'positive'));
+            keyboards_submassive.push(Markup.button(key, 'primary'));
             if (keyboards_submassive.length == 3) {
                 keyboards.unshift(keyboards_submassive);
                 keyboards_submassive = [];
@@ -136,7 +136,7 @@ module.exports.startVkChatbot = function (logger, Mongo) {
 
     function changeClass(ctx) {
         console.log('changeClass');
-        ctx.session.class_lvl = "";
+        ctx.session.class_lvl = '';
         ctx.scene.leave();
         ctx.scene.enter('change_class');
     }

@@ -2,7 +2,7 @@ const path_module = require('path');
 const readdirSync = require('readdirsync2');
 
 function getDir(path) {
-	return readdirSync(path, {only: 'directory', ignoreName: ["node_modules"], recursive: false});
+	return readdirSync(path, {only: 'directory', ignoreName: ['node_modules'], recursive: false});
 }
 
 function getFile(path) {
@@ -38,5 +38,5 @@ function structFile(path) {
 	return res;
 }
 module.exports.structFile = structFile;
-// let url = "./test/"
+// let url = './test/'
 // console.log(structFile(url)[1]['автор1']['учебник1']);

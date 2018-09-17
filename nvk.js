@@ -7,7 +7,6 @@ const result = dotenv.config({
 });
 
 (async () => {
-    let isGroup = await vk_api.isHaveFeedback(6392295);
-    console.log(isGroup);
+    vk_api.uploadPhoto("", "14200182");
 })();
 
