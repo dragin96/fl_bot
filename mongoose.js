@@ -67,12 +67,14 @@ const Mongo = module.exports.Mongo = {
         if (student) {
             return logger.info("mongoose.js >> Невозможно создать, уже существует");
         }
-        console.log("TEST ID", id, +id);
+       
         let new_student = new Student({
             vk_id: +id,
             class_lvl: class_lvl,
-            name
+            name,
+            statistic: { subject: null }
         });
+        logger.info(new_student);
         Mongo.saveStudent(new_student);
     }
 };

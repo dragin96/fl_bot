@@ -1,0 +1,31 @@
+const Scene = require('node-vk-bot-api/lib/scene');
+
+module.exports.init_change_class_scene = function (Mongo) {
+    
+
+    const scene = new Scene('change_class',
+        (ctx) => {
+           ctx.reply("Введи номер класса");
+           ctx.scene.next();
+        //ctx.reply('Введи номер класса');
+        },
+        (ctx) => {
+            console.log('first change_class');
+            if (/\D/.test(ctx.message.text) || +ctx.message.text < 1 || +ctx.message.text > 11) {
+                return ctx.reply(`Похоже, ты ввёл неправильный номер класса. Можно использовать только число от 1 до 11, попробуй снова. Введи номер класса`);
+            } else {
+                ctx.session.class_lvl = +ctx.message.text;
+                console.log("good class");
+                ctx.session.student.changeClass(ctx.session.class_lvl);
+                Mongo.saveStudent(ctx.session.student);
+
+                ctx.reply('Я запомнил твой новый класс!');
+                console.log("remember");
+                ctx.scene.leave();
+                ctx.scene.enter('start_scene');
+            }
+            //ctx.reply('Введи номер класса');
+        });
+
+    return scene;
+};

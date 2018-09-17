@@ -23,8 +23,29 @@ var studentSchema = mongoose.Schema({
         type: Date,
         default: Date.now
     },
-    statistic: mongoose.Schema.Types.Mixed
+    statistic: {
+        type: mongoose.Schema.Types.Mixed,
+        required: true
+    }
 });
+
+studentSchema.methods.changeClass = function (new_class) {
+    this.class_lvl = new_class;
+};
+
+studentSchema.methods.saveStatistic = function (subject) {
+    console.log("SAVE STATISCIKS", subject, this.statistic);
+    if(!this.statistic){
+        this.statistic = {};
+    }
+    console.log("this.statistic", this.statistic);
+    if(this.statistic[subject] === undefined) {
+        this.statistic[subject] = 1;
+    } else {
+        this.statistic[subject]++;
+    }
+    console.log("this.statistic", this.statistic);
+};
 
 studentSchema.methods.saveStatistic = function (subject) {
     console.log("SAVE STATISCIKS", subject);
@@ -34,7 +55,6 @@ studentSchema.methods.saveStatistic = function (subject) {
         this.statistic[subject]++;
     }
 };
-
 studentSchema.methods.IsInitState = function () {
     return this.state === 'init';
 };

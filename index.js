@@ -18,7 +18,6 @@ mongoose.setLogger(logger);
 mongoose.setStudent(schemes.Student);
 const Mongo=mongoose.Mongo;
 
-
 require('./vk_chat_bot.js').startVkChatbot(logger, Mongo);
 
 (async()=>{

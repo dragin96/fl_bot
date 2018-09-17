@@ -63,10 +63,7 @@ module.exports.startVkChatbot = function (logger, Mongo) {
         const author = ctx.session.author;
         const task = ctx.session.task;
         const part = ctx.session.part;
-        if (books[class_lvl] === undefined) {
-            logger.error(class_lvl + " class lvl not found");
-            return null;
-        }
+       
 
 
         let keyboards = [];
@@ -76,7 +73,7 @@ module.exports.startVkChatbot = function (logger, Mongo) {
         let text = getText('print_menu_' + stage, {
             class_lvl
         });
-
+        
         switch (stage) {
             case "start":
                 text = `Выбери необходимое действие`;
@@ -84,12 +81,16 @@ module.exports.startVkChatbot = function (logger, Mongo) {
                 keyboards.push([Markup.button("Статистика", 'positive', "stats"), Markup.button("Сменить класс", 'positive')]);
                 break;
             case "select_object":
+                if (books[class_lvl] === undefined) {
+                    logger.error(class_lvl + " class lvl not found");
+                    return null;
+                }
                 keys = Object.keys(books[class_lvl]);
                 keyboards.push([Markup.button("Сменить класс", 'positive'), Markup.button("Отмена", 'positive')]);
                 break;
             case "author":
                 if (books[class_lvl][subject] === undefined) {
-                    logger.error(`${subject} not found in ${class_lvl}`);
+                    logger.error(`subject ${subject} not found in ${class_lvl}`);
                     return null;
                 }
                 keys = Object.keys(books[class_lvl][subject]);
@@ -97,7 +98,7 @@ module.exports.startVkChatbot = function (logger, Mongo) {
                 break;
             case "part":
                 if (books[class_lvl][subject][author] === undefined) {
-                    logger.error(`${author} not found in ${class_lvl}, ${subject}`);
+                    logger.error(`author ${author} not found in ${class_lvl}, ${subject}`);
                     return null;
                 }
                 keys = Object.keys(books[class_lvl][subject][author]);
@@ -133,17 +134,25 @@ module.exports.startVkChatbot = function (logger, Mongo) {
         ctx.reply(text, null, Markup.keyboard(keyboards).oneTime());
     }
 
+    function changeClass(ctx) {
+        console.log('changeClass');
+        ctx.session.class_lvl = "";
+        ctx.scene.leave();
+        ctx.scene.enter('change_class');
+    }
+
     const bot = new VkBot({
         token: process.env.vk_bot_token,
         group_id: process.env.vk_group_id
     });
 
     const getText = require('./scenes/text_scenes.js').getText;
-    const print_menu_scene = require('./scenes/print_menu_scene.js').init_print_menu_scene(getText, printMenu, vk_api, books, bot);
+    const print_menu_scene = require('./scenes/print_menu_scene.js').init_print_menu_scene(getText, printMenu, vk_api, books, bot, Mongo, changeClass);
     const remember_scene = require('./scenes/remember_scene.js').init_remember_scene(getText, Mongo);
-    const start_scene = require('./scenes/start_scene.js').init_start_scene(printMenu);
+    const start_scene = require('./scenes/start_scene.js').init_start_scene(printMenu, changeClass);
+    const change_class_scene = require('./scenes/change_class_scene.js').init_change_class_scene(Mongo);
     const session = new Session();
-    const stage = new Stage(print_menu_scene, remember_scene, start_scene);
+    const stage = new Stage(print_menu_scene, remember_scene, start_scene, change_class_scene);
     bot.use(session.middleware());
     bot.use(stage.middleware());
 
