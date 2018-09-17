@@ -7,18 +7,6 @@ module.exports.init_remember_scene = function (getText, Mongo) {
             ctx.scene.next();
             ctx.reply(getText('hello', {name: ctx.session.name}));
         },
-        /* (ctx) => {
-            console.log('second remember scene');
-
-            const name = ctx.message.text;
-            if (name.length > 30) {
-                return ctx.reply(`Извини, ты ввел длинное имя, пожалуйста, попробуй еще раз. 
-        Как тебя зовут?`);
-            }
-            ctx.session.name = name;
-            ctx.reply(`Рад знакомству, ${name}! В каком ты классе?`);
-            ctx.scene.next();
-        },*/
         async (ctx) => {
             console.log('second remember scene');
             const class_lvl = ctx.message.text.match(/\d+/);
@@ -31,7 +19,7 @@ module.exports.init_remember_scene = function (getText, Mongo) {
             ctx.reply(getText('im_remember', {
                 class_lvl
             }));
-            ctx.scene.enter('start_scene');
+            ctx.scene.enter('print_menu');
 
 
         });
