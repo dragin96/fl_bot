@@ -33,6 +33,7 @@ module.exports.init_print_menu_scene = function (getText, printMenu, vk_api, boo
     }
 
     function ctx_menu_handler(ctx, text_param, stage, ret_stage, ret_step) {
+        logger.info('ctx_menu_handler enter, msg = ' + ctx.message.text);
         let isReturn = ctx.message.text == 'Вернуться';
         isReturn = isReturn || ctx.message.text == 'Сменить раздел';
         isReturn = isReturn || ctx.message.text == 'Сменить автора';
@@ -97,8 +98,8 @@ module.exports.init_print_menu_scene = function (getText, printMenu, vk_api, boo
 
             return attachments.substr(0, attachments.length - 1);
         } catch (e) {
-            logger.info('getanswer error', e);
-            logger.info('cannot find', ctx.session.class_lvl, ctx.session.subject, ctx.session.author, ctx.session.part, task);
+            logger.error('getanswer error', e);
+            logger.error('cannot find', ctx.session.class_lvl, ctx.session.subject, ctx.session.author, ctx.session.part, task);
             return null;
         }
 
@@ -118,6 +119,7 @@ module.exports.init_print_menu_scene = function (getText, printMenu, vk_api, boo
             }
             ctx.session.stage = 'select_object';
             if (ctx.message.text == 'Сменить класс') {
+                logger.info('first print_menu_scene return, change class');
                 return changeClass(ctx);
             }
             const res = printMenu(ctx);
@@ -126,6 +128,7 @@ module.exports.init_print_menu_scene = function (getText, printMenu, vk_api, boo
 https://vk.com/gdz_bot`;
                 ctx.session.stage = 'need_change_class';
                 let keyboards = getButtons(ctx);
+                logger.info('first print_menu_scene return, null res');
                 return ctx.reply(text, null, Markup.keyboard(keyboards).oneTime());
                 /* ctx.reply(text, null, );
                 ctx.session.stage = 'need_change_class';
@@ -144,12 +147,14 @@ https://vk.com/gdz_bot`;
             }
             const res_handler = ctx_menu_handler(ctx, 'subject', 'author');
             if (res_handler == 'return') {
+                logger.info('second print_menu_scene return, res_handler');
                 return;
             }
             let onlyButton = false;
 
             const res = printMenu(ctx, onlyButton);
             if (res === null) {
+                logger.info('second print_menu_scene return, res null');
                 return error_menu_handler(ctx, 'select_object');
             }
             ctx.scene.next();
@@ -163,6 +168,7 @@ https://vk.com/gdz_bot`;
             }
             const res_handler = ctx_menu_handler(ctx, 'author', 'part', 'select_object', 1);
             if (res_handler == 'return') {
+                logger.info('third print_menu_scene return, res_handler');
                 return;
             }
             let parts = Object.keys(books[ctx.session.class_lvl][ctx.session.subject][ctx.session.author]);
@@ -173,6 +179,7 @@ https://vk.com/gdz_bot`;
             }
             const res = printMenu(ctx);
             if (res === null) {
+                logger.info('third print_menu_scene return, res null');
                 return error_menu_handler(ctx, 'author');
             }
 
@@ -193,12 +200,14 @@ https://vk.com/gdz_bot`;
                 return logger.info('Отклоняю событие ' + ctx.message.type);
             }
             if (ctx_menu_handler(ctx, 'part', 'task', 'author', 2) == 'return') {
+                logger.info('fourth print_menu_scene return, res_handler ');
                 return;
             }
             logger.info('test', ctx.session.class_lvl, ctx.session.subject, ctx.session.author);
 
             const res = printMenu(ctx);
             if (res === null) {
+                logger.info('fourth print_menu_scene return, res null');
                 return error_menu_handler(ctx, 'part');
             }
             ctx.scene.next();
@@ -212,20 +221,26 @@ https://vk.com/gdz_bot`;
             if (ctx.message.text == 'Инструкция') {
                 let keyboards = getButtons(ctx);
                 ctx.reply(getText('instruction', {}), null, Markup.keyboard(keyboards).oneTime());
+                logger.info('finally print_menu_scene return, instruction');
                 return;
             } else if (ctx.message.text == 'Сменить раздел') {
                 ctx.session.stage='part';
                 ctx.scene.selectStep(3);
+                logger.info('finally print_menu_scene return, smenit razdel');
                 return printMenu(ctx);
             } else if (ctx.message.text == 'Статистика') {
                 ctx.reply(getStatistic(ctx));
+                logger.info('finally print_menu_scene return, statistic');
                 return printMenu(ctx);
             } else if (ctx.message.text == 'Сменить предмет') {
+                logger.info('finally print_menu_scene return, changesubject');
                 return changeSubject(ctx);
             } else if (ctx.message.text == 'Сменить класс') {
+                logger.info('finally print_menu_scene return, changeclass');
                 return changeClass(ctx);
             } else if (/\D/.test(ctx.message.text)) {
                 let keyboards = getButtons(ctx);
+                logger.info('finally print_menu_scene return, bad input number');
                 ctx.reply(getText('Похоже, ты ввел некорректный номер. Используя только цифры, введи номер задания:', {}), null, Markup.keyboard(keyboards).oneTime());
                 return;
                 
