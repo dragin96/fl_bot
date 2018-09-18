@@ -9,51 +9,8 @@ const vk_api = vk.vk_api;
 
 const books = require('./dirRead.js').structFile(process.env.books_path);
 
-//console.log('BOOKS', books);
-/*const books = {
-    '1': {
-        'Математика': {
-            'Автор': {
-                'Раздел 1': {
-                    '1': '1.jpg',
-                    '2': '2.jpg'
-                }
-            }
-        },
-        'Физика': {
-            'Автор': {
-                'Раздел 1': {
-                    '1': '1.jpg',
-                    '2': '2.jpg'
-                }
-            }
-        }
-    },
-    '2': {
-        'Математика': {
-            'Макарычев': {
-                'Раздел 1': {
-                    '1': '1.jpg',
-                    '2': '2.jpg'
-                }
-            }
-        },
-        'Русский': {
-            'Автор': {
-                'Раздел 1': {
-                    '1': '1.jpg',
-                    '2': '2.jpg'
-                }
-            }
-        }
-    }
-};
-
-*/
-
-
 module.exports.startVkChatbot = function (logger, Mongo) {
-    logger.info(books);
+    logger.info('books', books);
 
     function getMenuText(ctx) {
         const class_lvl = ctx.session.class_lvl;
@@ -76,7 +33,7 @@ module.exports.startVkChatbot = function (logger, Mongo) {
             case 'task':
                 break;
             case 'get_answer':
-                text = `Нужен другой ответ по ${ctx.session.class_lvl} классу, предмету ${ctx.session.subject} автора ${ctx.session.author}? – вводи номер! &#128526;`;
+                text = `Нужен другой ответ по ${ctx.session.class_lvl} классу, предмету ${ctx.session.subject} автору ${ctx.session.author}? – вводи номер! &#128526;`;
                 break;
         }
         return text;
@@ -92,7 +49,7 @@ module.exports.startVkChatbot = function (logger, Mongo) {
         let keyboards = [];
         let keyboards_submassive = [];
         let keys = [];
-        console.log('join getButtons switch', stage, class_lvl, subject, author, part, task);
+        logger.info('join getButtons switch', stage, class_lvl, subject, author, part, task);
 
 
         switch (stage) {
@@ -146,7 +103,7 @@ module.exports.startVkChatbot = function (logger, Mongo) {
                 keyboards.push([Markup.button('Инструкция', 'positive')]);
                 break;
         }
-        // console.log('join printMenu keys');
+        // logger.info('join printMenu keys');
         for (let key of keys) {
             keyboards_submassive.push(Markup.button(key, 'primary'));
             if (keyboards_submassive.length == 3) {
@@ -174,13 +131,11 @@ module.exports.startVkChatbot = function (logger, Mongo) {
     }
 
     function changeClass(ctx) {
-        console.log('changeClass');
+        logger.info('changeClass');
         ctx.session.class_lvl = '';
-        console.log('changeClass 1');
         ctx.scene.leave();
-        console.log('changeClass 2');
         ctx.scene.enter('change_class');
-        console.log('change class end');
+        logger.info('change class end');
     }
 
     const bot = new VkBot({
@@ -189,10 +144,10 @@ module.exports.startVkChatbot = function (logger, Mongo) {
     });
 
     const getText = require('./scenes/text_scenes.js').getText;
-    const print_menu_scene = require('./scenes/print_menu_scene.js').init_print_menu_scene(getText, printMenu, vk_api, books, bot, Mongo, changeClass, getButtons);
-    const remember_scene = require('./scenes/remember_scene.js').init_remember_scene(getText, Mongo);
-    const start_scene = require('./scenes/start_scene.js').init_start_scene(printMenu, changeClass);
-    const change_class_scene = require('./scenes/change_class_scene.js').init_change_class_scene(Mongo);
+    const print_menu_scene = require('./scenes/print_menu_scene.js').init_print_menu_scene(getText, printMenu, vk_api, books, bot, Mongo, changeClass, getButtons, logger);
+    const remember_scene = require('./scenes/remember_scene.js').init_remember_scene(getText, Mongo, logger);
+    const start_scene = require('./scenes/start_scene.js').init_start_scene(printMenu, changeClass, logger);
+    const change_class_scene = require('./scenes/change_class_scene.js').init_change_class_scene(logger);
     const session = new Session();
     const stage = new Stage(print_menu_scene, remember_scene, start_scene, change_class_scene);
     bot.use(session.middleware());
@@ -205,7 +160,10 @@ module.exports.startVkChatbot = function (logger, Mongo) {
     });*/
 
     bot.on(async (ctx) => {
-        logger.info('get message on');
+        logger.info('get message on', ctx.message);
+        if(ctx.message.type!='message_new'){
+            return logger.info('Отклоняю событие ' + ctx.message.type);
+        }
         const id = ctx.message.peer_id;
         const student = await Mongo.getStudentById(id).catch(logger.error);
         //такого ученика нет в базе
@@ -228,7 +186,7 @@ module.exports.startVkChatbot = function (logger, Mongo) {
 
         }
 
-        logger.info(student);
+        logger.info('student', student);
         //const text=getText('hello', {});
         //ctx.reply(text);
     });

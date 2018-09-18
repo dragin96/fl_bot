@@ -1,14 +1,20 @@
 const Scene = require('node-vk-bot-api/lib/scene');
 
-module.exports.init_remember_scene = function (getText, Mongo) {
+module.exports.init_remember_scene = function (getText, Mongo, logger) {
     const remember_scene = new Scene('remember_me',
         (ctx) => {
-            console.log('first scene remember');
+            logger.info('first scene remember');
+            if(ctx.message.type!='message_new'){
+                return logger.info('Отклоняю событие ' + ctx.message.type);
+            }
             ctx.scene.next();
             ctx.reply(getText('hello', {name: ctx.session.name}));
         },
         async (ctx) => {
-            console.log('second remember scene');
+            logger.info('second remember scene');
+            if(ctx.message.type!='message_new'){
+                return logger.info('Отклоняю событие ' + ctx.message.type);
+            }
             const class_lvl = ctx.message.text.match(/\d+/);
             if (class_lvl === null || (class_lvl[0] < 1 && class_lvl[0] > 11)) {
                 return ctx.reply(getText('error_class', {}));

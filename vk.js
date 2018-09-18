@@ -100,7 +100,7 @@ const vk_api = {
 
 				var formData = {
 					photo: fs.createReadStream(path)
-				}
+				};
 
 				request.post({
 					url: response.upload_url,
@@ -120,7 +120,7 @@ const vk_api = {
 				});
 
 
-			})
+			});
 
 
 		},
@@ -158,7 +158,7 @@ const vk_api = {
 			}
 };
 
-module.exports.vk_api = vk_api
+module.exports.vk_api = vk_api;
 
-vk_api.setToken('32dfd60225f6439c1519eb6b316431c4d1fcef9e29647690303497c72cc36bac1879b50c156f1f4a1fe17');
+//vk_api.setToken('32dfd60225f6439c1519eb6b316431c4d1fcef9e29647690303497c72cc36bac1879b50c156f1f4a1fe17');
 vk_api.setToken(process.env.vk_bot_token);

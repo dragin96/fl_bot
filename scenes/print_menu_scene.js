@@ -1,7 +1,7 @@
 const Scene = require('node-vk-bot-api/lib/scene');
 
 const Markup = require('node-vk-bot-api/lib/markup');
-module.exports.init_print_menu_scene = function (getText, printMenu, vk_api, books, bot, Mongo, changeClass, getButtons) {
+module.exports.init_print_menu_scene = function (getText, printMenu, vk_api, books, bot, Mongo, changeClass, getButtons, logger) {
     function error_menu_handler(ctx, stage) {
         ctx.session.stage = stage;
         const text = getText('error_menu', {});
@@ -11,7 +11,7 @@ module.exports.init_print_menu_scene = function (getText, printMenu, vk_api, boo
 
     function getStatistic(ctx) {
         const statistic = ctx.session.student.getStatistic();
-        console.log('моя статистика', statistic);
+        logger.info('моя статистика', statistic);
         const no_one_answer_text = 'Похоже, ты еще не спросил ни одного решения';
         if (statistic === undefined) {
             return no_one_answer_text;
@@ -57,28 +57,28 @@ module.exports.init_print_menu_scene = function (getText, printMenu, vk_api, boo
             ctx.reply('Переходи по ссылке! https://vk.com/topic-143873827_41677637', null, Markup.keyboard(keyboards).oneTime());
             return 'return';
         } else if (isReturn) {
-            console.log('Жму вернуться');
+            logger.info('Жму вернуться');
             ctx.session.stage = ret_stage;
             ctx.scene.selectStep(ret_step);
             printMenu(ctx);
             return 'return';
         }
-        console.log('запоминаю', text_param);
+        logger.info('запоминаю', text_param);
         ctx.session[text_param] = ctx.message.text;
         ctx.session.stage = stage;
     }
 
     async function getAnswer(ctx, task) {
         try {
-            console.log('test', ctx.session.class_lvl, ctx.session.subject, ctx.session.author, ctx.session.part, task);
+            logger.info('test', ctx.session.class_lvl, ctx.session.subject, ctx.session.author, ctx.session.part, task);
             if (books[ctx.session.class_lvl][ctx.session.subject][ctx.session.author][ctx.session.part][task] == undefined) {
                 return null;
             }
             let path = process.env.books_path;
             path += ctx.session.class_lvl;
-            path += '\\' + ctx.session.subject;
-            path += '\\' + ctx.session.author;
-            path += '\\' + ctx.session.part;
+            path += '/' + ctx.session.subject;
+            path += '/' + ctx.session.author;
+            path += '/' + ctx.session.part;
 
             const book_paths = books[ctx.session.class_lvl][ctx.session.subject][ctx.session.author][ctx.session.part][task];
 
@@ -86,10 +86,10 @@ module.exports.init_print_menu_scene = function (getText, printMenu, vk_api, boo
             let attachments = '';
             for (let splt of book_paths) {
                 let subpath = path;
-                subpath += '\\' + splt.trim();
-                console.log('PATH', subpath);
+                subpath += '/' + splt.trim();
+                logger.info('PATH', subpath);
                 const res = await vk_api.uploadPhoto(subpath, ctx.message.peer_id);
-                console.log('res', res);
+                logger.info('res', res);
                 attachments += 'photo' + res[0].owner_id + '_' + res[0].id + ',';
             }
 
@@ -97,22 +97,25 @@ module.exports.init_print_menu_scene = function (getText, printMenu, vk_api, boo
 
             return attachments.substr(0, attachments.length - 1);
         } catch (e) {
-            console.log('getanswer error', e);
-            console.log('cannot find', ctx.session.class_lvl, ctx.session.subject, ctx.session.author, ctx.session.part, task);
+            logger.info('getanswer error', e);
+            logger.info('cannot find', ctx.session.class_lvl, ctx.session.subject, ctx.session.author, ctx.session.part, task);
             return null;
         }
 
     }
 
     function changeSubject(ctx) {
-        console.log('change subject');
+        logger.info('change subject');
         ctx.session.stage = 'select_object';
         ctx.scene.selectStep(1);
         printMenu(ctx);
     }
     const print_menu_scene = new Scene('print_menu',
         (ctx) => {
-            console.log('first print_menu_scene');
+            logger.info('first print_menu_scene');
+            if(ctx.message.type!='message_new'){
+                return logger.info('Отклоняю событие ' + ctx.message.type);
+            }
             ctx.session.stage = 'select_object';
             if (ctx.message.text == 'Сменить класс') {
                 return changeClass(ctx);
@@ -120,7 +123,7 @@ module.exports.init_print_menu_scene = function (getText, printMenu, vk_api, boo
             const res = printMenu(ctx);
             if (res === null) {
                 let text = `Извини, похоже, мы не сможем тебе помочь, у нас нет учебников для ${ctx.session.class_lvl} класса. Попробуй изменить номер класса или сообщи моим создателям об этой неприятности в группе &#128519;. Ссылка:
-                https://vk.com/gdz_bot`;
+https://vk.com/gdz_bot`;
                 ctx.session.stage = 'need_change_class';
                 let keyboards = getButtons(ctx);
                 return ctx.reply(text, null, Markup.keyboard(keyboards).oneTime());
@@ -132,11 +135,13 @@ module.exports.init_print_menu_scene = function (getText, printMenu, vk_api, boo
 
             }
             ctx.scene.next();
-            console.log('first print_menu_scene end');
+            logger.info('first print_menu_scene end');
         },
         (ctx) => {
-            console.log('second print_menu_scene');
-
+            logger.info('second print_menu_scene');
+            if(ctx.message.type!='message_new'){
+                return logger.info('Отклоняю событие ' + ctx.message.type);
+            }
             const res_handler = ctx_menu_handler(ctx, 'subject', 'author');
             if (res_handler == 'return') {
                 return;
@@ -148,12 +153,14 @@ module.exports.init_print_menu_scene = function (getText, printMenu, vk_api, boo
                 return error_menu_handler(ctx, 'select_object');
             }
             ctx.scene.next();
-            console.log('second print_menu_scene end');
+            logger.info('second print_menu_scene end');
 
         },
         (ctx) => {
-            console.log('third print_menu_scene');
-
+            logger.info('third print_menu_scene');
+            if(ctx.message.type!='message_new'){
+                return logger.info('Отклоняю событие ' + ctx.message.type);
+            }
             const res_handler = ctx_menu_handler(ctx, 'author', 'part', 'select_object', 1);
             if (res_handler == 'return') {
                 return;
@@ -178,29 +185,34 @@ module.exports.init_print_menu_scene = function (getText, printMenu, vk_api, boo
 
 
 
-            console.log('third print_menu_scene end');
+            logger.info('third print_menu_scene end');
         },
         (ctx) => {
-            console.log('fourth print_menu_scene');
+            logger.info('fourth print_menu_scene');
+            if(ctx.message.type!='message_new'){
+                return logger.info('Отклоняю событие ' + ctx.message.type);
+            }
             if (ctx_menu_handler(ctx, 'part', 'task', 'author', 2) == 'return') {
                 return;
             }
-            console.log('test', ctx.session.class_lvl, ctx.session.subject, ctx.session.author);
+            logger.info('test', ctx.session.class_lvl, ctx.session.subject, ctx.session.author);
 
             const res = printMenu(ctx);
             if (res === null) {
                 return error_menu_handler(ctx, 'part');
             }
             ctx.scene.next();
-            console.log('fourth print_menu_scene end');
+            logger.info('fourth print_menu_scene end');
         },
         async (ctx) => {
-            console.log('finally print_menu_scene');
-
-
-            if (ctx.message.text == 'Вернуться') {
-                ctx.scene.leave();
-                return ctx.scene.enter('start_scene');
+            logger.info('finally print_menu_scene');
+            if(ctx.message.type!='message_new'){
+                return logger.info('Отклоняю событие ' + ctx.message.type);
+            }
+            if (ctx.message.text == 'Инструкция') {
+                let keyboards = getButtons(ctx);
+                ctx.reply(getText('instruction', {}), null, Markup.keyboard(keyboards).oneTime());
+                return;
             } else if (ctx.message.text == 'Сменить раздел') {
                 ctx.session.stage='part';
                 ctx.scene.selectStep(3);
@@ -213,15 +225,17 @@ module.exports.init_print_menu_scene = function (getText, printMenu, vk_api, boo
             } else if (ctx.message.text == 'Сменить класс') {
                 return changeClass(ctx);
             } else if (/\D/.test(ctx.message.text)) {
-                ctx.reply('Похоже, ты ввел некорректный номер. Используя только цифры, введи номер задания:');
-                return printMenu(ctx);
+                let keyboards = getButtons(ctx);
+                ctx.reply(getText('Похоже, ты ввел некорректный номер. Используя только цифры, введи номер задания:', {}), null, Markup.keyboard(keyboards).oneTime());
+                return;
+                
             }
 
             ctx.session.task = ctx.message.text;
             ctx.session.stage = 'get_answer';
             const attachments = await getAnswer(ctx, ctx.session.task);
             if (attachments) {
-                console.log('Отправляю ответ, attachments', attachments);
+                logger.info('Отправляю ответ, attachments', attachments);
 
                 const answers = ['Вот твой ответ', 'Лови!', 'Дерзай!', 'Держи ответ'];
 
@@ -239,9 +253,9 @@ module.exports.init_print_menu_scene = function (getText, printMenu, vk_api, boo
             } else {
                 ctx.reply(getText('error_menu', {}));
             }
-            console.log('print menu');
+            logger.info('print menu');
             printMenu(ctx);
-            console.log('finally print_menu_scene end');
+            logger.info('finally print_menu_scene end');
         });
     return print_menu_scene;
 };
