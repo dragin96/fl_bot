@@ -11,7 +11,7 @@ module.exports.init_print_menu_scene = function (getText, printMenu, vk_api, boo
 
     function getStatistic(ctx) {
         const statistic = ctx.session.student.getStatistic();
-        logger.info('моя статистика', statistic);
+        logger.info('моя статистика ' + statistic);
         const no_one_answer_text = 'Похоже, ты еще не спросил ни одного решения';
         if (statistic === undefined) {
             return no_one_answer_text;
@@ -64,14 +64,14 @@ module.exports.init_print_menu_scene = function (getText, printMenu, vk_api, boo
             printMenu(ctx);
             return 'return';
         }
-        logger.info('запоминаю', text_param);
+        logger.info('запоминаю ' + text_param);
         ctx.session[text_param] = ctx.message.text;
         ctx.session.stage = stage;
     }
 
     async function getAnswer(ctx, task) {
         try {
-            logger.info('test', ctx.session.class_lvl, ctx.session.subject, ctx.session.author, ctx.session.part, task);
+            logger.info('test' + ctx.session.class_lvl + ' ' + ctx.session.subject + ' ' + ctx.session.author + ' ' + ctx.session.part + ' ' + task);
             if (books[ctx.session.class_lvl][ctx.session.subject][ctx.session.author][ctx.session.part][task] == undefined) {
                 return null;
             }
@@ -88,7 +88,7 @@ module.exports.init_print_menu_scene = function (getText, printMenu, vk_api, boo
             for (let splt of book_paths) {
                 let subpath = path;
                 subpath += '/' + splt.trim();
-                logger.info('PATH', subpath);
+                logger.info('PATH' + subpath);
                 const res = await vk_api.uploadPhoto(subpath, ctx.message.peer_id);
                 logger.info('res', res);
                 attachments += 'photo' + res[0].owner_id + '_' + res[0].id + ',';
@@ -114,7 +114,7 @@ module.exports.init_print_menu_scene = function (getText, printMenu, vk_api, boo
     const print_menu_scene = new Scene('print_menu',
         (ctx) => {
             logger.info('first print_menu_scene');
-            if(ctx.message.type!='message_new'){
+            if (ctx.message.type != 'message_new') {
                 return logger.info('Отклоняю событие ' + ctx.message.type);
             }
             ctx.session.stage = 'select_object';
@@ -142,7 +142,7 @@ https://vk.com/gdz_bot`;
         },
         (ctx) => {
             logger.info('second print_menu_scene');
-            if(ctx.message.type!='message_new'){
+            if (ctx.message.type != 'message_new') {
                 return logger.info('Отклоняю событие ' + ctx.message.type);
             }
             const res_handler = ctx_menu_handler(ctx, 'subject', 'author');
@@ -163,7 +163,7 @@ https://vk.com/gdz_bot`;
         },
         (ctx) => {
             logger.info('third print_menu_scene');
-            if(ctx.message.type!='message_new'){
+            if (ctx.message.type != 'message_new') {
                 return logger.info('Отклоняю событие ' + ctx.message.type);
             }
             const res_handler = ctx_menu_handler(ctx, 'author', 'part', 'select_object', 1);
@@ -196,14 +196,14 @@ https://vk.com/gdz_bot`;
         },
         (ctx) => {
             logger.info('fourth print_menu_scene');
-            if(ctx.message.type!='message_new'){
+            if (ctx.message.type != 'message_new') {
                 return logger.info('Отклоняю событие ' + ctx.message.type);
             }
             if (ctx_menu_handler(ctx, 'part', 'task', 'author', 2) == 'return') {
                 logger.info('fourth print_menu_scene return, res_handler ');
                 return;
             }
-            logger.info('test', ctx.session.class_lvl, ctx.session.subject, ctx.session.author);
+            logger.info('test ' + ctx.session.class_lvl + ' ' + ctx.session.subject + ' ' + ctx.session.author);
 
             const res = printMenu(ctx);
             if (res === null) {
@@ -215,7 +215,7 @@ https://vk.com/gdz_bot`;
         },
         async (ctx) => {
             logger.info('finally print_menu_scene');
-            if(ctx.message.type!='message_new'){
+            if (ctx.message.type != 'message_new') {
                 return logger.info('Отклоняю событие ' + ctx.message.type);
             }
             if (ctx.message.text == 'Инструкция') {
@@ -224,7 +224,7 @@ https://vk.com/gdz_bot`;
                 logger.info('finally print_menu_scene return, instruction');
                 return;
             } else if (ctx.message.text == 'Сменить раздел') {
-                ctx.session.stage='part';
+                ctx.session.stage = 'part';
                 ctx.scene.selectStep(3);
                 logger.info('finally print_menu_scene return, smenit razdel');
                 return printMenu(ctx);
@@ -243,7 +243,7 @@ https://vk.com/gdz_bot`;
                 logger.info('finally print_menu_scene return, bad input number');
                 ctx.reply(getText('Похоже, ты ввел некорректный номер. Используя только цифры, введи номер задания:', {}), null, Markup.keyboard(keyboards).oneTime());
                 return;
-                
+
             }
 
             ctx.session.task = ctx.message.text;
