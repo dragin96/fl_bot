@@ -49,7 +49,7 @@ module.exports.startVkChatbot = function (logger, Mongo) {
         let keyboards = [];
         let keyboards_submassive = [];
         let keys = [];
-        logger.info('join getButtons switch', stage, class_lvl, subject, author, part, task);
+        logger.info('join getButtons switch stage=' + stage + '; class_lvl=' + class_lvl + '; subject=' + subject + '; author=' + author + '; part=' + part +'; task='+ task);
 
 
         switch (stage) {
@@ -103,7 +103,6 @@ module.exports.startVkChatbot = function (logger, Mongo) {
                 keyboards.push([Markup.button('Инструкция', 'positive')]);
                 break;
         }
-        // logger.info('join printMenu keys');
         for (let key of keys) {
             keyboards_submassive.push(Markup.button(key, 'primary'));
             if (keyboards_submassive.length == 3) {
