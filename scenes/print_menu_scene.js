@@ -218,6 +218,7 @@ https://vk.com/gdz_bot`;
             if (ctx.message.type != 'message_new') {
                 return logger.info('Отклоняю событие ' + ctx.message.type);
             }
+            ctx.session.stage = 'get_answer';
             if (ctx.message.text == 'Инструкция') {
                 let keyboards = getButtons(ctx);
                 ctx.reply(getText('instruction', {}), null, Markup.keyboard(keyboards).oneTime());
@@ -239,9 +240,10 @@ https://vk.com/gdz_bot`;
                 logger.info('finally print_menu_scene return, changeclass');
                 return changeClass(ctx);
             } else if (/\D/.test(ctx.message.text)) {
+                
                 let keyboards = getButtons(ctx);
                 logger.info('finally print_menu_scene return, bad input number');
-                ctx.reply(getText('Похоже, ты ввел некорректный номер. Используя только цифры, введи номер задания:', {}), null, Markup.keyboard(keyboards).oneTime());
+                ctx.reply('Похоже, ты ввел некорректный номер. Используя только цифры, введи номер задания:', null, Markup.keyboard(keyboards).oneTime());
                 return;
 
             }
