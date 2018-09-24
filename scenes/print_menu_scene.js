@@ -268,7 +268,6 @@ https://vk.com/gdz_bot`;
             } else {
                 ctx.reply(getText('error_menu', {}));
             }
-            logger.info('print menu');
             printMenu(ctx);
             logger.info('finally print_menu_scene end');
         });
