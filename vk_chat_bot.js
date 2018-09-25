@@ -35,7 +35,7 @@ module.exports.startVkChatbot = function (logger, Mongo) {
             case 'task':
                 break;
             case 'get_answer':
-                text = `Нужен другой ответ по ${ctx.session.class_lvl} классу, предмету ${ctx.session.subject} автору ${ctx.session.author}? – вводи номер! &#128526;`;
+                text = `Нужен другой ответ по ${ctx.session.class_lvl} классу, предмету ${ctx.session.subject} автору ${ctx.session.author}? – вводи номер от ${ctx.session.task_first} до ${ctx.session.task_last}! &#128526;`;
                 break;
         }
         return text;
@@ -53,19 +53,17 @@ module.exports.startVkChatbot = function (logger, Mongo) {
         const author = ctx.session.author;
         const task = ctx.session.task;
         const part = ctx.session.part;
+        const parts = ctx.session.parts;
         let keyboards = [];
         let keyboards_submassive = [];
         let keys = [];
-      
+        let books_part;
             
       
         logger.info('join getButtons switch stage=' + stage + '; class_lvl=' + class_lvl + '; subject=' + subject + '; author=' + author + '; part=' + part + '; task=' + task);
 
 
         switch (stage) {
-            case 'start':
-                keyboards.push([Markup.button('Добавить предмет/автора', 'primary', 'stats')]);
-                break;
             case 'need_change_class':
                 keyboards.push([Markup.button('Сменить класс', 'negative', 'stats')]);
                 //keyboards.push([Markup.button('Инструкция', 'positive', 'stats')]);
@@ -96,25 +94,42 @@ module.exports.startVkChatbot = function (logger, Mongo) {
                 }
                 keys = Object.keys(books[class_lvl][subject][author]);
                 break;
-            case 'task':
-                if (books[class_lvl][subject][author][part] === undefined) {
-                    logger.warn(`${part} not found in ${class_lvl}, ${subject}, ${part}`);
-                    return null;
+            case 'subpart':
+                books_part = books[class_lvl][subject][author];
+                for (let part of ctx.session.parts) {
+                    books_part = books_part[part];
                 }
-
-                keys = Object.keys(books[class_lvl][subject][author][part]);
-
+                keys = Object.keys(books_part);
+                keyboards.push([Markup.button('Сменить раздел', 'negative')]);
+                break;
+            case 'task':
+                if(parts && parts.length){
+                    books_part = books[class_lvl][subject][author];
+                    for (let part of ctx.session.parts) {
+                        if(books_part[part] == undefined){
+                            logger.warn(`${part} not found in ${class_lvl}, ${subject}, ${author}, ${parts}`);
+                            return null;
+                        }
+                        books_part = books_part[part];
+                    }
+                    keys = Object.keys(books_part);
+                } else {
+                    if (books[class_lvl][subject][author][part] === undefined) {
+                        logger.warn(`${part} not found in ${class_lvl}, ${subject}, ${author}, ${part}`);
+                        return null;
+                    }
+                    keys = Object.keys(books[class_lvl][subject][author][part]);
+                }
                 if (keys.length) {
                     ctx.session.task_first = keys[0];
                     ctx.session.task_last = keys[keys.length - 1];
                 }
                 keys = [];
                 keyboards.push([Markup.button('Сменить раздел', 'negative')]);
-                //ctx.reply(getText('print_menu_task', {}), null, Markup.keyboard(keyboards).oneTime());
                 break;
             case 'get_answer':
                 keyboards.push([Markup.button('Статистика', 'primary', 'stats')]);
-                keyboards.push([Markup.button('Сменить предмет', 'negative', 'stats'), Markup.button('Сменить класс', 'negative')]);
+                keyboards.push([Markup.button('Сменить предмет', 'negative', 'stats'), Markup.button('Сменить раздел', 'negative')]);
                 keyboards.push([Markup.button('Инструкция', 'positive')]);
                 break;
         }
@@ -137,11 +152,8 @@ module.exports.startVkChatbot = function (logger, Mongo) {
         if (keyboards) {
             ctx.reply(text, null, Markup.keyboard(keyboards).oneTime());
             return true;
-        } else {
-            return null;
-        }
-
-
+        } 
+        return null;
     }
 
     function changeClass(ctx) {
@@ -166,9 +178,7 @@ module.exports.startVkChatbot = function (logger, Mongo) {
     const stage = new Stage(print_menu_scene, remember_scene, start_scene, change_class_scene);
     bot.use(session.middleware());
     bot.use(stage.middleware());
-
-
-
+    
     /*bot.command('Получить ответ|получить ответ', (ctx) => {
         ctx.scene.enter('print_menu');
     });*/
@@ -196,12 +206,7 @@ module.exports.startVkChatbot = function (logger, Mongo) {
                 name: student.name
             }));
             ctx.scene.enter('print_menu');
-
         }
-
-
-        //const text=getText('hello', {});
-        //ctx.reply(text);
     });
     bot.startPolling();
 };

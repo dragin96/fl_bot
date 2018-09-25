@@ -8,7 +8,7 @@ const {
 	auth
 } = vk;
 const readline = require('readline');
-const owner_id = '-132152902';
+//const owner_id = '-132152902';
 //let logger;
 let logger = require('./logger.js').logger;
 vk.setOptions({
@@ -118,11 +118,7 @@ const vk_api = {
 					});
 					resolve(response);
 				});
-
-
 			});
-
-
 		},
 		isMemberGroup: async (id) => {
 				const response = await vk.api.groups.isMember({
@@ -134,8 +130,8 @@ const vk_api = {
 			},
 			isHaveFeedback: async (id, start = 0) => {
 				let res = await vk.api.board.getComments({
-					group_id: 25892529, //process.env.vk_group_id,
-					topic_id: 29438053, //process.env.vk_topic
+					group_id: process.env.vk_group_id,
+					topic_id: process.env.vk_topic,
 					count: 100,
 					start_comment_id: start
 				});
