@@ -12,7 +12,7 @@ module.exports.getText = function getText(text, params) {
         print_menu_select_object: `Скажи, какой предмет для ${params.class_lvl} класса тебе нужен? &#128522; Выбери предмет, нажав на кнопку ниже`,       
         print_menu_author: 'Теперь выбери нужного автора, нажав на кнопку ниже &#128521;',
         print_menu_part: 'Теперь скажи, какой тебе нужен раздел',
-        print_menu_task: `Отлично! &#128521; Теперь скажи, какой тебе номер нужен
+        print_menu_task: `Отлично! &#128521; Теперь скажи, какой тебе номер нужен, доступны номера с ${params.task_first} по ${params.task_last}
         
 Введи цифру`,
         error_class: 'Пожалуйста, укажи верный класс',

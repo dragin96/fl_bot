@@ -17,7 +17,9 @@ module.exports.startVkChatbot = function (logger, Mongo) {
         const stage = ctx.session.stage;
 
         let text = getText('print_menu_' + stage, {
-            class_lvl
+            class_lvl,
+            task_first: ctx.session.task_first,
+            task_last: ctx.session.task_last
         });
 
         switch (stage) {
@@ -40,6 +42,11 @@ module.exports.startVkChatbot = function (logger, Mongo) {
     }
 
     function getButtons(ctx) {
+        if(!ctx.session || !ctx.session.class_lvl){
+            logger.error('какая-то хрень с session', ctx.session);
+            return null;
+        }
+      
         const class_lvl = ctx.session.class_lvl;
         const stage = ctx.session.stage;
         const subject = ctx.session.subject;
@@ -49,12 +56,14 @@ module.exports.startVkChatbot = function (logger, Mongo) {
         let keyboards = [];
         let keyboards_submassive = [];
         let keys = [];
-        logger.info('join getButtons switch stage=' + stage + '; class_lvl=' + class_lvl + '; subject=' + subject + '; author=' + author + '; part=' + part +'; task='+ task);
+      
+            
+      
+        logger.info('join getButtons switch stage=' + stage + '; class_lvl=' + class_lvl + '; subject=' + subject + '; author=' + author + '; part=' + part + '; task=' + task);
 
 
         switch (stage) {
             case 'start':
-
                 keyboards.push([Markup.button('Добавить предмет/автора', 'primary', 'stats')]);
                 break;
             case 'need_change_class':
@@ -69,11 +78,11 @@ module.exports.startVkChatbot = function (logger, Mongo) {
 
                 keyboards.push([Markup.button('Экстренная помощь', 'positive', 'stats'), Markup.button('Добавить предмет/автора', 'positive', 'stats')]);
                 keyboards.push([Markup.button('Сменить класс', 'negative'), Markup.button('Инструкция', 'positive')]);
-                
+
                 break;
             case 'author':
                 if (books[class_lvl][subject] === undefined) {
-                    logger.error(`subject ${subject} not found in ${class_lvl}`);
+                    logger.warn(`subject ${subject} not found in ${class_lvl}`);
                     return null;
                 }
                 keys = Object.keys(books[class_lvl][subject]);
@@ -82,22 +91,28 @@ module.exports.startVkChatbot = function (logger, Mongo) {
                 break;
             case 'part':
                 if (books[class_lvl][subject][author] === undefined) {
-                    logger.error(`author ${author} not found in ${class_lvl}, ${subject}`);
+                    logger.warn(`author ${author} not found in ${class_lvl}, ${subject}`);
                     return null;
                 }
                 keys = Object.keys(books[class_lvl][subject][author]);
-               
                 break;
             case 'task':
                 if (books[class_lvl][subject][author][part] === undefined) {
-                    logger.error(`${part} not found in ${class_lvl}, ${subject}, ${part}`);
+                    logger.warn(`${part} not found in ${class_lvl}, ${subject}, ${part}`);
                     return null;
                 }
+
+                keys = Object.keys(books[class_lvl][subject][author][part]);
+
+                if (keys.length) {
+                    ctx.session.task_first = keys[0];
+                    ctx.session.task_last = keys[keys.length - 1];
+                }
+                keys = [];
                 keyboards.push([Markup.button('Сменить раздел', 'negative')]);
                 //ctx.reply(getText('print_menu_task', {}), null, Markup.keyboard(keyboards).oneTime());
                 break;
             case 'get_answer':
-                
                 keyboards.push([Markup.button('Статистика', 'primary', 'stats')]);
                 keyboards.push([Markup.button('Сменить предмет', 'negative', 'stats'), Markup.button('Сменить класс', 'negative')]);
                 keyboards.push([Markup.button('Инструкция', 'positive')]);
@@ -160,7 +175,7 @@ module.exports.startVkChatbot = function (logger, Mongo) {
 
     bot.on(async (ctx) => {
         logger.info('get message on', ctx.message);
-        if(ctx.message.type!='message_new'){
+        if (ctx.message.type != 'message_new') {
             return logger.info('Отклоняю событие ' + ctx.message.type);
         }
         const id = ctx.message.peer_id;
@@ -168,13 +183,12 @@ module.exports.startVkChatbot = function (logger, Mongo) {
         //такого ученика нет в базе
         if (student === null) {
             //сцена ввода класса
-            logger.info('in remember');
+            logger.info(id + ' in remember');
             ctx.session.name = await vk_api.getName(id);
             ctx.scene.enter('remember_me');
         } else {
-
             //сцена выбора действий
-            logger.info('in choise');
+            logger.info(id + ' in choise');
             ctx.session.class_lvl = student.class_lvl;
             ctx.session.student = student;
             ctx.session.name = student.name;
@@ -185,7 +199,7 @@ module.exports.startVkChatbot = function (logger, Mongo) {
 
         }
 
-        logger.info('student', student);
+
         //const text=getText('hello', {});
         //ctx.reply(text);
     });
