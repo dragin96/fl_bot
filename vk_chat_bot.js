@@ -115,7 +115,7 @@ module.exports.startVkChatbot = function (logger, Mongo) {
                     return null;
                 }
                 keys = Object.keys(books[class_lvl][subject][author]);
-                keyboards.push([Markup.button('Сменить предмет', 'negative'), Markup.button('Сменить автора', 'negative', 'stats')]);
+                keyboards.push([Markup.button('Сменить предмет', 'negative')]);
                 break;
             case 'subpart':
                 books_part = books[class_lvl][subject][author];
@@ -165,6 +165,7 @@ module.exports.startVkChatbot = function (logger, Mongo) {
         }
         try {
             const keys_length = keys.length;
+            ctx.session.is_overfull_keys = false;
             keys = keys.sort(compareNumeric);
             let max_button_in_row = 3;
             if (keys_length <= 8) {
