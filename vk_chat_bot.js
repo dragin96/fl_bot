@@ -38,6 +38,8 @@ module.exports.startVkChatbot = function (logger, Mongo) {
             case 'subpart':
                 if (ctx.session.is_overfull_keys) {
                     text = `У нас здесь слишком много подразделов, пожалуйста, введи цифру нужного тебе ${ctx.session.part_subname? ctx.session.part_subname : 'подраздела'} от ${ctx.session.overfull_first_key} до ${ctx.session.overfull_last_key}`;
+                } else {
+                    text = 'Выбери подраздел';
                 }
                 break;
             case 'task':
@@ -59,7 +61,7 @@ module.exports.startVkChatbot = function (logger, Mongo) {
         return 0;
     }
 
-   
+
 
     function getButtons(ctx) {
         if (!ctx.session || !ctx.session.class_lvl) {
@@ -117,11 +119,10 @@ module.exports.startVkChatbot = function (logger, Mongo) {
                 break;
             case 'subpart':
                 books_part = books[class_lvl][subject][author];
-                ii = 0;
                 for (let part of ctx.session.parts) {
                     if (books_part[part] == undefined) {
-                            logger.warn(`${part} not found in ${class_lvl}, ${subject}, ${author}, ${parts}`);
-                            return null;
+                        logger.warn(`${part} not found in ${class_lvl}, ${subject}, ${author}, ${parts}`);
+                        return null;
                     }
 
                     books_part = books_part[part];
@@ -162,58 +163,63 @@ module.exports.startVkChatbot = function (logger, Mongo) {
                 keyboards.push([Markup.button('Инструкция', 'positive')]);
                 break;
         }
-        const keys_length = keys.length;
-
-        keys = keys.sort(compareNumeric);
-        let max_button_in_row = 3;
-        if (keys_length <= 8) {
-            max_button_in_row = 1;
-        } else if (keys_length <= 16) {
-            max_button_in_row = 2;
-        } else if (keys_length <= 24) {
-            max_button_in_row = 3;
-        } else if (keys_length <= 32) {
-            max_button_in_row = 4;
-        } else {
-            ctx.session.is_overfull_keys = true;
-            ctx.session.overfull_first_key = keys[0];
-            ctx.session.overfull_last_key = keys[keys_length - 1];
-            console.log('Переполнено', keys_length);
-            keys = [];
-        }
-
-        for (let key of keys) {
-            if (~key.toLowerCase().indexOf('модуль')) {
-                ctx.session.part_subname = 'модуль';
-            } else if (~key.toLowerCase().indexOf('§')) {
-                ctx.session.part_subname = '§';
-            } else if (~key.toLowerCase().indexOf('глава')) {
-                ctx.session.part_subname = 'глава';
-            } else if (~key.toLowerCase().indexOf('упражнение')) {
-                ctx.session.part_subname = 'упражнение';
+        try {
+            const keys_length = keys.length;
+            keys = keys.sort(compareNumeric);
+            let max_button_in_row = 3;
+            if (keys_length <= 8) {
+                max_button_in_row = 1;
+            } else if (keys_length <= 16) {
+                max_button_in_row = 2;
+            } else if (keys_length <= 24) {
+                max_button_in_row = 3;
+            } else if (keys_length <= 32) {
+                max_button_in_row = 4;
+            } else {
+                ctx.session.is_overfull_keys = true;
+                ctx.session.overfull_first_key = keys[0];
+                ctx.session.overfull_last_key = keys[keys_length - 1];
+                console.log('Переполнено', keys_length);
+                keys = [];
             }
-            console.log('part_subname', ctx.session.part_subname)
-            if (max_button_in_row > 2 && ctx.session.part_subname) {
-                key = key.replace(ctx.session.part_subname, '');
+            for (let key of keys) {
+                if (~key.toLowerCase().indexOf('модуль')) {
+                    ctx.session.part_subname = 'модуль';
+                } else if (~key.toLowerCase().indexOf('§')) {
+                    ctx.session.part_subname = '§';
+                } else if (~key.toLowerCase().indexOf('глава')) {
+                    ctx.session.part_subname = 'глава';
+                } else if (~key.toLowerCase().indexOf('упражнение')) {
+                    ctx.session.part_subname = 'упражнение';
+                }
+                if (max_button_in_row > 2 && ctx.session.part_subname) {
+                    key = key.replace(ctx.session.part_subname, '');
+                }
+                keyboards_submassive.push(Markup.button(key, 'primary'));
+                if (keyboards_submassive.length == max_button_in_row) {
+                    keyboards.unshift(keyboards_submassive);
+                    keyboards_submassive = [];
+                }
             }
-            keyboards_submassive.push(Markup.button(key, 'primary'));
-            if (keyboards_submassive.length == max_button_in_row) {
+            if (keyboards_submassive.length) {
                 keyboards.unshift(keyboards_submassive);
-                keyboards_submassive = [];
             }
-        }
-        if (keyboards_submassive.length) {
-            keyboards.unshift(keyboards_submassive);
+        } catch (e) {
+            logger.error('error with getbuttons part2' + e.message + ' ' + e.stack);
         }
         return keyboards;
     }
 
     function printMenu(ctx) {
-        let keyboards = getButtons(ctx);
-        let text = getMenuText(ctx);
-        if (keyboards) {
-            ctx.reply(text, null, Markup.keyboard(keyboards).oneTime());
-            return true;
+        try {
+            let keyboards = getButtons(ctx);
+            let text = getMenuText(ctx);
+            if (keyboards) {
+                ctx.reply(text, null, Markup.keyboard(keyboards).oneTime());
+                return true;
+            }
+        } catch (e) {
+            logger.error('print menu error' + e.message + ' ' + e.stack);
         }
         return null;
     }
@@ -232,7 +238,7 @@ module.exports.startVkChatbot = function (logger, Mongo) {
     });
 
     const getText = require('./scenes/text_scenes.js').getText;
-    const print_menu_scene = require('./scenes/print_menu_scene.js').init_print_menu_scene(getText, printMenu, vk_api, books, bot, compareNumeric, changeClass, getButtons, logger);
+    const print_menu_scene = require('./scenes/print_menu_scene.js').init_print_menu_scene(getText, printMenu, vk_api, books, bot, compareNumeric, changeClass, getButtons, logger, getMenuText);
     const remember_scene = require('./scenes/remember_scene.js').init_remember_scene(getText, Mongo, logger);
     const start_scene = require('./scenes/start_scene.js').init_start_scene(printMenu, changeClass, logger);
     const change_class_scene = require('./scenes/change_class_scene.js').init_change_class_scene(logger);

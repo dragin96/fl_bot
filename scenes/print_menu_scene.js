@@ -1,7 +1,7 @@
 const Scene = require('node-vk-bot-api/lib/scene');
 
 const Markup = require('node-vk-bot-api/lib/markup');
-module.exports.init_print_menu_scene = function (getText, printMenu, vk_api, books, bot, compareNumeric, changeClass, getButtons, logger) {
+module.exports.init_print_menu_scene = function (getText, printMenu, vk_api, books, bot, compareNumeric, changeClass, getButtons, logger, getMenuText) {
     function isLastPart(ctx) {
         try {
             const class_lvl = ctx.session.class_lvl;
@@ -183,6 +183,7 @@ module.exports.init_print_menu_scene = function (getText, printMenu, vk_api, boo
             if(ctx.message.text == '/reset'){
                 logger.info(`Пользователь id=${id} хочет сбросить бота`);
                 clear_session(ctx);
+                ctx.reply('Бот успешно сброшен!');
                 ctx.scene.leave();
                 return;
             }
@@ -224,6 +225,7 @@ https://vk.com/gdz_bot`;
             if(ctx.message.text == '/reset'){
                 logger.info(`Пользователь id=${id} хочет сбросить бота`);
                 clear_session(ctx);
+                ctx.reply('Бот успешно сброшен!');
                 ctx.scene.leave();
                 return;
             }
@@ -257,6 +259,7 @@ https://vk.com/gdz_bot`;
             if(ctx.message.text == '/reset'){
                 logger.info(`Пользователь id=${id} хочет сбросить бота`);
                 clear_session(ctx);
+                ctx.reply('Бот успешно сброшен!');
                 ctx.scene.leave();
                 return;
             }
@@ -303,6 +306,7 @@ https://vk.com/gdz_bot`;
             if(ctx.message.text == '/reset'){
                 logger.info(`Пользователь id=${id} хочет сбросить бота`);
                 clear_session(ctx);
+                ctx.reply('Бот успешно сброшен!');
                 ctx.scene.leave();
                 return;
             }
@@ -346,7 +350,8 @@ https://vk.com/gdz_bot`;
             if(!is_last_part){
                 ctx.session.stage='subpart';
                 let keyboards = getButtons(ctx);
-                return ctx.reply('Выбери подраздел', null, Markup.keyboard(keyboards).oneTime());
+                let text = getMenuText(ctx);
+                return ctx.reply(text, null, Markup.keyboard(keyboards).oneTime());
             }
             const res = printMenu(ctx);
             if (res === null) {
@@ -371,6 +376,7 @@ https://vk.com/gdz_bot`;
             if(ctx.message.text == '/reset'){
                 logger.info(`Пользователь id=${id} хочет сбросить бота`);
                 clear_session(ctx);
+                ctx.reply('Бот успешно сброшен!');
                 ctx.scene.leave();
                 return;
             }
