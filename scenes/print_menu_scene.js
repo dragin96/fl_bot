@@ -1,7 +1,7 @@
 const Scene = require('node-vk-bot-api/lib/scene');
 
 const Markup = require('node-vk-bot-api/lib/markup');
-module.exports.init_print_menu_scene = function (getText, printMenu, vk_api, books, bot, Mongo, changeClass, getButtons, logger) {
+module.exports.init_print_menu_scene = function (getText, printMenu, vk_api, books, bot, compareNumeric, changeClass, getButtons, logger) {
     function isLastPart(ctx) {
         try {
             const class_lvl = ctx.session.class_lvl;
@@ -144,7 +144,19 @@ module.exports.init_print_menu_scene = function (getText, printMenu, vk_api, boo
 
     }
 
+    function getCompare(mas, key) {
+        mas = mas.sort(compareNumeric);
+        for (let el of mas) {
+            if (~el.indexOf(key)) {
+                return el;
+            }
+        }
+        return null;
+    }
+
     function clear_session(ctx) {
+        delete ctx.session.subject;
+        delete ctx.session.author;
         delete ctx.session.parts;
         delete ctx.session.part;
         delete ctx.session.task;
@@ -270,6 +282,11 @@ https://vk.com/gdz_bot`;
             if (ctx.message.type != 'message_new') {
                 return logger.info('Отклоняю событие ' + ctx.message.type);
             }
+            if (ctx.message.text == 'Сменить предмет') {
+                logger.info(id + ' fourth print_menu_scene return, changesubject');
+                clear_session(ctx);
+                return changeSubject(ctx);
+            }
             if (ctx_menu_handler(ctx, 'part', 'task', 'author', 2) == 'return') {
                 logger.info('fourth print_menu_scene return, res_handler , id=' + id + '; message=' + message);
                 return;
@@ -277,7 +294,28 @@ https://vk.com/gdz_bot`;
             if(!ctx.session.parts){
                 ctx.session.parts=[];
             }
-            ctx.session.parts.push(ctx.message.text);
+
+            let books_part = books[ctx.session.class_lvl][ctx.session.subject][ctx.session.author];
+            for (let part of ctx.session.parts) {
+                if (books_part[part] == undefined) {
+                    logger.error('ebola sluchilas s razdelom`', part);
+                }
+                books_part = books_part[part];
+            }
+
+            let new_part = ctx.message.text;
+            if (books_part[new_part] == undefined) {
+                console.log(`Не найден раздел ${new_part}, пробую найти по ключу`);
+                const key = getCompare(Object.keys(books_part), new_part);
+                if (key) {
+                    console.log('Ключ найден!', key);
+                    new_part = key;
+                } else {
+                    logger.warn(`Ключ ${new_part} не найден`);
+                }
+            }
+
+            ctx.session.parts.push(new_part);
             const is_last_part = isLastPart(ctx);
             console.log('IS LAST PART', is_last_part);
 
