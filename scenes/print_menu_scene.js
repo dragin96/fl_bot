@@ -180,6 +180,12 @@ module.exports.init_print_menu_scene = function (getText, printMenu, vk_api, boo
             if (ctx.message.type != 'message_new') {
                 return logger.info('Отклоняю событие ' + ctx.message.type);
             }
+            if(ctx.message.text == '/reset'){
+                logger.info(`Пользователь id=${id} хочет сбросить бота`);
+                clear_session(ctx);
+                ctx.scene.leave();
+                return;
+            }
             ctx.session.stage = 'select_object';
             if (ctx.message.text == 'Сменить класс') {
                 logger.info('first print_menu_scene return, change class, id=' + id + '; message=' + message);
@@ -215,6 +221,12 @@ https://vk.com/gdz_bot`;
             if (ctx.message.type != 'message_new') {
                 return logger.info('Отклоняю событие ' + ctx.message.type + ' id=' + id + '; message=' + message);
             }
+            if(ctx.message.text == '/reset'){
+                logger.info(`Пользователь id=${id} хочет сбросить бота`);
+                clear_session(ctx);
+                ctx.scene.leave();
+                return;
+            }
             const res_handler = ctx_menu_handler(ctx, 'subject', 'author');
             if (res_handler == 'return') {
                 logger.info('second print_menu_scene return, res_handler, id=' + id + '; message=' + message);
@@ -241,6 +253,12 @@ https://vk.com/gdz_bot`;
             logger.info('third print_menu_scene, id=' + id + '; message=' + message);
             if (ctx.message.type != 'message_new') {
                 return logger.info('Отклоняю событие ' + ctx.message.type);
+            }
+            if(ctx.message.text == '/reset'){
+                logger.info(`Пользователь id=${id} хочет сбросить бота`);
+                clear_session(ctx);
+                ctx.scene.leave();
+                return;
             }
             const res_handler = ctx_menu_handler(ctx, 'author', 'part', 'select_object', 1);
             if (res_handler == 'return') {
@@ -281,6 +299,12 @@ https://vk.com/gdz_bot`;
             logger.info('fourth print_menu_scene, id=' + id + '; message=' + message);
             if (ctx.message.type != 'message_new') {
                 return logger.info('Отклоняю событие ' + ctx.message.type);
+            }
+            if(ctx.message.text == '/reset'){
+                logger.info(`Пользователь id=${id} хочет сбросить бота`);
+                clear_session(ctx);
+                ctx.scene.leave();
+                return;
             }
             if (ctx.message.text == 'Сменить предмет') {
                 logger.info(id + ' fourth print_menu_scene return, changesubject');
@@ -343,6 +367,12 @@ https://vk.com/gdz_bot`;
             logger.info('finally print_menu_scene, id=' + id + '; message=' + message);
             if (ctx.message.type != 'message_new') {
                 return logger.info('Отклоняю событие ' + ctx.message.type);
+            }
+            if(ctx.message.text == '/reset'){
+                logger.info(`Пользователь id=${id} хочет сбросить бота`);
+                clear_session(ctx);
+                ctx.scene.leave();
+                return;
             }
             ctx.session.stage = 'get_answer';
             if (ctx.message.text == 'Инструкция') {

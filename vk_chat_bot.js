@@ -241,9 +241,6 @@ module.exports.startVkChatbot = function (logger, Mongo) {
     bot.use(session.middleware());
     bot.use(stage.middleware());
 
-    /*bot.command('Получить ответ|получить ответ', (ctx) => {
-        ctx.scene.enter('print_menu');
-    });*/
 
     bot.on(async (ctx) => {
         logger.info('get message on', ctx.message);
