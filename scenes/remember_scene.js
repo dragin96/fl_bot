@@ -1,6 +1,6 @@
 const Scene = require('node-vk-bot-api/lib/scene');
 
-module.exports.init_remember_scene = function (getText, Mongo, logger) {
+module.exports.init_remember_scene = function (getText, Mongo, logger, vk_api, bot) {
     const remember_scene = new Scene('remember_me',
         (ctx) => {
             logger.info('first scene remember');
@@ -21,6 +21,11 @@ module.exports.init_remember_scene = function (getText, Mongo, logger) {
             }
             ctx.session.class_lvl = +class_lvl[0];
             ctx.session.student = await Mongo.initStudent(ctx.message.peer_id, +class_lvl[0], ctx.session.name);
+            
+            const res = await vk_api.uploadPhoto('./assets/keyboard.png', ctx.message.peer_id);
+            let attachments = 'photo' + res[0].owner_id + '_' + res[0].id;
+
+            bot.sendMessage(ctx.message.peer_id,getText('keyboard', {}) , attachments);
             ctx.scene.leave();
             ctx.reply(getText('im_remember', {
                 class_lvl

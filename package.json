@@ -4,6 +4,7 @@
   "description": "bot for vk",
   "main": "index.js",
   "dependencies": {
+    "VK-Promise": "^0.2.91",
     "dotenv": "^6.0.0",
     "emailjs": "^2.2.0",
     "moment": "^2.22.2",

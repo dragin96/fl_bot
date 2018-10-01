@@ -9,8 +9,8 @@ const vk_api = vk.vk_api;
 
 const books = require('./dirRead.js').structFile(process.env.books_path);
 
-module.exports.startVkChatbot = function (logger, Mongo) {
-    logger.info('books', books);
+module.exports.startVkChatbot = function (logger, Mongo, statistic) {
+    // logger.info('books', books);
 
     function getMenuText(ctx) {
         const class_lvl = ctx.session.class_lvl;
@@ -80,7 +80,6 @@ module.exports.startVkChatbot = function (logger, Mongo) {
         let keyboards_submassive = [];
         let keys = [];
         let books_part;
-        let ii;
 
         logger.info('join getButtons switch stage=' + stage + '; class_lvl=' + class_lvl + '; subject=' + subject + '; author=' + author + '; part=' + part + ';parts=' + parts + '; task=' + task);
 
@@ -92,6 +91,13 @@ module.exports.startVkChatbot = function (logger, Mongo) {
                 break;
             case 'select_object':
                 if (books[class_lvl] === undefined) {
+                    logger.warn(`class_lvl ${class_lvl} not found`);
+                    statistic.saveWrongReq({
+                        first_name: ctx.session.student.name,
+                        vk_id: ctx.message.peer_id,
+                        class_lvl,
+                        message: ctx.message.text
+                    });
                     return null;
                 }
                 keys = Object.keys(books[class_lvl]);
@@ -103,6 +109,13 @@ module.exports.startVkChatbot = function (logger, Mongo) {
             case 'author':
                 if (books[class_lvl][subject] === undefined) {
                     logger.warn(`subject ${subject} not found in ${class_lvl}`);
+                    statistic.saveWrongReq({
+                        first_name: ctx.session.student.name,
+                        vk_id: ctx.message.peer_id,
+                        class_lvl,
+                        subject,
+                        message: ctx.message.text
+                    });
                     return null;
                 }
                 keys = Object.keys(books[class_lvl][subject]);
@@ -112,6 +125,14 @@ module.exports.startVkChatbot = function (logger, Mongo) {
             case 'part':
                 if (books[class_lvl][subject][author] === undefined) {
                     logger.warn(`author ${author} not found in ${class_lvl}, ${subject}`);
+                    statistic.saveWrongReq({
+                        first_name: ctx.session.student.name,
+                        vk_id: ctx.message.peer_id,
+                        class_lvl,
+                        subject,
+                        author,
+                        message: ctx.message.text
+                    });
                     return null;
                 }
                 keys = Object.keys(books[class_lvl][subject][author]);
@@ -122,11 +143,20 @@ module.exports.startVkChatbot = function (logger, Mongo) {
                 for (let part of ctx.session.parts) {
                     if (books_part[part] == undefined) {
                         logger.warn(`${part} not found in ${class_lvl}, ${subject}, ${author}, ${parts}`);
+                        statistic.saveWrongReq({
+                            first_name: ctx.session.student.name,
+                            vk_id: ctx.message.peer_id,
+                            class_lvl,
+                            subject,
+                            author,
+                            parts,
+                            message: ctx.message.text
+                        });
                         return null;
+
                     }
 
                     books_part = books_part[part];
-                    ii++;
                 }
                 keys = Object.keys(books_part);
                 keyboards.push([Markup.button('Сменить предмет', 'negative', 'stats'), Markup.button('Сменить раздел', 'negative')]);
@@ -137,6 +167,15 @@ module.exports.startVkChatbot = function (logger, Mongo) {
                     for (let part of ctx.session.parts) {
                         if (books_part[part] == undefined) {
                             logger.warn(`${part} not found in ${class_lvl}, ${subject}, ${author}, ${parts}`);
+                            statistic.saveWrongReq({
+                                first_name: ctx.session.student.name,
+                                vk_id: ctx.message.peer_id,
+                                class_lvl,
+                                subject,
+                                author,
+                                parts,
+                                message: ctx.message.text
+                            });
                             return null;
                         }
                         books_part = books_part[part];
@@ -144,6 +183,15 @@ module.exports.startVkChatbot = function (logger, Mongo) {
                     keys = Object.keys(books_part);
                 } else {
                     if (books[class_lvl][subject][author][part] === undefined) {
+                        statistic.saveWrongReq({
+                            first_name: ctx.session.student.name,
+                            vk_id: ctx.message.peer_id,
+                            class_lvl,
+                            subject,
+                            author,
+                            parts,
+                            message: ctx.message.text
+                        });
                         logger.warn(`${part} not found in ${class_lvl}, ${subject}, ${author}, ${part}`);
                         return null;
                     }
@@ -239,8 +287,8 @@ module.exports.startVkChatbot = function (logger, Mongo) {
     });
 
     const getText = require('./scenes/text_scenes.js').getText;
-    const print_menu_scene = require('./scenes/print_menu_scene.js').init_print_menu_scene(getText, printMenu, vk_api, books, bot, compareNumeric, changeClass, getButtons, logger, getMenuText);
-    const remember_scene = require('./scenes/remember_scene.js').init_remember_scene(getText, Mongo, logger);
+    const print_menu_scene = require('./scenes/print_menu_scene.js').init_print_menu_scene(getText, printMenu, vk_api, books, bot, compareNumeric, changeClass, getButtons, logger, getMenuText, statistic);
+    const remember_scene = require('./scenes/remember_scene.js').init_remember_scene(getText, Mongo, logger, vk_api, bot);
     const start_scene = require('./scenes/start_scene.js').init_start_scene(printMenu, changeClass, logger);
     const change_class_scene = require('./scenes/change_class_scene.js').init_change_class_scene(logger);
     const session = new Session();
@@ -249,6 +297,17 @@ module.exports.startVkChatbot = function (logger, Mongo) {
     bot.use(stage.middleware());
 
 
+
+
+
+    bot.event('group_leave', async (ctx) => {
+        const id = ctx.message.user_id;
+        const name = await vk_api.getName(id);
+        ctx.reply(`${name}, жаль, что ты от нас уходишь! Тебе что-то не понравилось? Расскажи нам об этом: https://vk.com/topic-143873827_37354320 Я исправлюсь &#128519;`);
+    });
+    bot.event('group_join', async (ctx) => {
+        ctx.reply('Спасибо большое за твою подписку!');
+    });
     bot.on(async (ctx) => {
         logger.info('get message on', ctx.message);
         if (ctx.message.type != 'message_new') {
@@ -256,6 +315,22 @@ module.exports.startVkChatbot = function (logger, Mongo) {
         }
         const id = ctx.message.peer_id;
         const student = await Mongo.getStudentById(id).catch(logger.error);
+        ctx.session.upTime=new Date();
+
+        setInterval(()=>{
+            if(new Date() - ctx.session.upTime > 6 * 60 * 60 * 1000){
+                logger.info(`reset user with id = ${id} because long time not activity`);
+                ctx.stage.leave();
+                delete ctx.session.subject;
+                delete ctx.session.author;
+                delete ctx.session.parts;
+                delete ctx.session.part;
+                delete ctx.session.task;
+                delete ctx.session.is_last_part;
+                ctx.session.upTime=new Date();
+            }
+        }, 3 * 60 * 60 * 1000);
+
         //такого ученика нет в базе
         if (student === null) {
             //сцена ввода класса

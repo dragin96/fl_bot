@@ -1,7 +1,7 @@
 const Scene = require('node-vk-bot-api/lib/scene');
 
 const Markup = require('node-vk-bot-api/lib/markup');
-module.exports.init_print_menu_scene = function (getText, printMenu, vk_api, books, bot, compareNumeric, changeClass, getButtons, logger, getMenuText) {
+module.exports.init_print_menu_scene = function (getText, printMenu, vk_api, books, bot, compareNumeric, changeClass, getButtons, logger, getMenuText, statistic) {
     function isLastPart(ctx) {
         try {
             const class_lvl = ctx.session.class_lvl;
@@ -24,8 +24,8 @@ module.exports.init_print_menu_scene = function (getText, printMenu, vk_api, boo
     function error_menu_handler(ctx, stage) {
         const id = ctx.message.peer_id;
         logger.info(id + ' error_menu_handler ' + stage);
-        ctx.session.parts=[];
-        ctx.session.stage = stage=='subpart'? 'part' : stage;
+        ctx.session.parts = [];
+        ctx.session.stage = stage == 'subpart' ? 'part' : stage;
         const text = getText('error_menu', {});
         ctx.reply(text);
         return printMenu(ctx);
@@ -78,13 +78,13 @@ module.exports.init_print_menu_scene = function (getText, printMenu, vk_api, boo
             ctx.reply('Переходи по ссылке! https://vk.com/topic-143873827_41677637', null, Markup.keyboard(keyboards).oneTime());
             return 'return';
         } else if (isReturn) {
-            if(ctx.session.stage=='subpart'){
+            if (ctx.session.stage == 'subpart') {
                 ctx.session.stage = 'part';
             } else {
                 ctx.session.stage = ret_stage;
                 ctx.scene.selectStep(ret_step);
             }
-            ctx.session.parts=[];
+            ctx.session.parts = [];
             printMenu(ctx);
             return 'return';
         }
@@ -98,35 +98,35 @@ module.exports.init_print_menu_scene = function (getText, printMenu, vk_api, boo
 
     async function getAnswer(ctx, task) {
         const id = ctx.message.peer_id;
+        const class_lvl = ctx.session.class_lvl;
+        const subject = ctx.session.subject;
+        const author = ctx.session.author;
+        let parts = ctx.session.parts;
         logger.info(id + ' getAnswer ' + ctx.session.class_lvl + ' ' + ctx.session.subject + ' ' + ctx.session.author + ' ' + ctx.session.part + ' ' + task);
 
         try {
             let books_part = books[ctx.session.class_lvl][ctx.session.subject][ctx.session.author];
-            
+
             let path = process.env.books_path;
             path += ctx.session.class_lvl;
             path += '/' + ctx.session.subject;
             path += '/' + ctx.session.author;
-           
+
             let book_paths;
-            
-            if(ctx.session.parts){
+
+            if (ctx.session.parts) {
                 for (let part of ctx.session.parts) {
                     books_part = books_part[part];
                     path += '/' + part;
                 }
-                if(books_part[task] === undefined){
-                    return null;
-                }
+
                 book_paths = books_part[task];
             } else {
-                if(books[ctx.session.class_lvl][ctx.session.subject][ctx.session.author][ctx.session.part][task] === undefined){
-                    return null;
-                }
+
                 path += '/' + ctx.session.part;
                 book_paths = books[ctx.session.class_lvl][ctx.session.subject][ctx.session.author][ctx.session.part][task];
             }
-           
+
             let attachments = '';
             for (let splt of book_paths) {
                 let subpath = path;
@@ -138,6 +138,15 @@ module.exports.init_print_menu_scene = function (getText, printMenu, vk_api, boo
             }
             return attachments.substr(0, attachments.length - 1);
         } catch (e) {
+            statistic.saveWrongReq({
+                first_name: ctx.session.student.name,
+                vk_id: ctx.message.peer_id,
+                class_lvl,
+                subject,
+                author,
+                parts,
+                message: ctx.message.text
+            });
             logger.warn(id + ' getanswer error' + e);
             return null;
         }
@@ -167,9 +176,25 @@ module.exports.init_print_menu_scene = function (getText, printMenu, vk_api, boo
         const id = ctx.message.peer_id;
         logger.info(id + ' change subject');
         ctx.session.stage = 'select_object';
-        ctx.session.parts=[];
+        ctx.session.parts = [];
         ctx.scene.selectStep(1);
         printMenu(ctx);
+    }
+
+    function checkCtx(ctx) {
+        ctx.session.upTime=new Date();
+        if (ctx.message.type != 'message_new') {
+            logger.info('Отклоняю событие ' + ctx.message.type);
+            return 'return';
+        }
+        if (ctx.message.text == '/reset') {
+            logger.info(`Пользователь id=${ctx.message.peer_id} хочет сбросить бота`);
+            clear_session(ctx);
+            ctx.reply('Бот успешно сброшен!');
+            ctx.scene.leave();
+            return 'return';
+        }
+        return null;
     }
 
     function selectObjectStep(ctx) {
@@ -177,14 +202,7 @@ module.exports.init_print_menu_scene = function (getText, printMenu, vk_api, boo
         const message = ctx.message.text;
         try {
             logger.info('first print_menu_scene, id=' + id + '; message=' + message);
-            if (ctx.message.type != 'message_new') {
-                return logger.info('Отклоняю событие ' + ctx.message.type);
-            }
-            if(ctx.message.text == '/reset'){
-                logger.info(`Пользователь id=${id} хочет сбросить бота`);
-                clear_session(ctx);
-                ctx.reply('Бот успешно сброшен!');
-                ctx.scene.leave();
+            if (checkCtx(ctx) === 'return') {
                 return;
             }
             ctx.session.stage = 'select_object';
@@ -219,14 +237,7 @@ https://vk.com/gdz_bot`;
         const message = ctx.message.text;
         try {
             logger.info('second print_menu_scene, id=' + id + '; message=' + message);
-            if (ctx.message.type != 'message_new') {
-                return logger.info('Отклоняю событие ' + ctx.message.type + ' id=' + id + '; message=' + message);
-            }
-            if(ctx.message.text == '/reset'){
-                logger.info(`Пользователь id=${id} хочет сбросить бота`);
-                clear_session(ctx);
-                ctx.reply('Бот успешно сброшен!');
-                ctx.scene.leave();
+            if (checkCtx(ctx) === 'return') {
                 return;
             }
             const res_handler = ctx_menu_handler(ctx, 'subject', 'author');
@@ -252,15 +263,7 @@ https://vk.com/gdz_bot`;
         const id = ctx.message.peer_id;
         const message = ctx.message.text;
         try {
-            logger.info('third print_menu_scene, id=' + id + '; message=' + message);
-            if (ctx.message.type != 'message_new') {
-                return logger.info('Отклоняю событие ' + ctx.message.type);
-            }
-            if(ctx.message.text == '/reset'){
-                logger.info(`Пользователь id=${id} хочет сбросить бота`);
-                clear_session(ctx);
-                ctx.reply('Бот успешно сброшен!');
-                ctx.scene.leave();
+            if (checkCtx(ctx) === 'return') {
                 return;
             }
             const res_handler = ctx_menu_handler(ctx, 'author', 'part', 'select_object', 1);
@@ -300,14 +303,7 @@ https://vk.com/gdz_bot`;
         const message = ctx.message.text;
         try {
             logger.info('fourth print_menu_scene, id=' + id + '; message=' + message);
-            if (ctx.message.type != 'message_new') {
-                return logger.info('Отклоняю событие ' + ctx.message.type);
-            }
-            if(ctx.message.text == '/reset'){
-                logger.info(`Пользователь id=${id} хочет сбросить бота`);
-                clear_session(ctx);
-                ctx.reply('Бот успешно сброшен!');
-                ctx.scene.leave();
+            if (checkCtx(ctx) === 'return') {
                 return;
             }
             if (ctx.message.text == 'Сменить предмет') {
@@ -319,8 +315,8 @@ https://vk.com/gdz_bot`;
                 logger.info('fourth print_menu_scene return, res_handler , id=' + id + '; message=' + message);
                 return;
             }
-            if(!ctx.session.parts){
-                ctx.session.parts=[];
+            if (!ctx.session.parts) {
+                ctx.session.parts = [];
             }
 
             let books_part = books[ctx.session.class_lvl][ctx.session.subject][ctx.session.author];
@@ -347,8 +343,8 @@ https://vk.com/gdz_bot`;
             const is_last_part = isLastPart(ctx);
             console.log('IS LAST PART', is_last_part);
 
-            if(!is_last_part){
-                ctx.session.stage='subpart';
+            if (!is_last_part) {
+                ctx.session.stage = 'subpart';
                 let keyboards = getButtons(ctx);
                 let text = getMenuText(ctx);
                 return ctx.reply(text, null, Markup.keyboard(keyboards).oneTime());
@@ -370,14 +366,7 @@ https://vk.com/gdz_bot`;
         const message = ctx.message.text;
         try {
             logger.info('finally print_menu_scene, id=' + id + '; message=' + message);
-            if (ctx.message.type != 'message_new') {
-                return logger.info('Отклоняю событие ' + ctx.message.type);
-            }
-            if(ctx.message.text == '/reset'){
-                logger.info(`Пользователь id=${id} хочет сбросить бота`);
-                clear_session(ctx);
-                ctx.reply('Бот успешно сброшен!');
-                ctx.scene.leave();
+            if (checkCtx(ctx) === 'return') {
                 return;
             }
             ctx.session.stage = 'get_answer';
@@ -388,7 +377,7 @@ https://vk.com/gdz_bot`;
                 return;
             } else if (ctx.message.text == 'Сменить раздел') {
                 ctx.session.stage = 'part';
-                ctx.session.parts=[];
+                ctx.session.parts = [];
                 ctx.scene.selectStep(3);
                 logger.info('finally print_menu_scene return, smenit razdel');
                 return printMenu(ctx);
@@ -405,13 +394,6 @@ https://vk.com/gdz_bot`;
                 clear_session(ctx);
                 return changeClass(ctx);
             }
-            /* else if (/\D/.test(ctx.message.text)) {
-                            let keyboards = getButtons(ctx);
-                            logger.info('finally print_menu_scene return, bad input number, id=' + id + '; message=' + message);
-                            ctx.reply('Похоже, ты ввел некорректный номер. Используя только цифры, введи номер задания:', null, Markup.keyboard(keyboards).oneTime());
-                            return;
-
-                        }*/
 
             ctx.session.task = ctx.message.text;
             const attachments = await getAnswer(ctx, ctx.session.task);
@@ -422,12 +404,33 @@ https://vk.com/gdz_bot`;
 
 
                 bot.sendMessage(ctx.message.peer_id, answers[Math.floor(Math.random() * answers.length)], attachments);
-                /*if (vk_api.isHaveFeedback(ctx.session.student.vk_id)) {
-                ctx.reply(getText('get_answer_feedback', {}));
-                }*/
-                /* ctx.reply(getText('get_answer_reply', {
-                     book: ctx.session.author
-                 }));*/
+
+                const answer_num = ctx.session.student.answer_num || 1;
+                const last_agit_day = ctx.session.student.last_agit_day;
+                const friend_reply_times = ctx.session.student.friend_reply_times || 0;
+                const is_member_group = await vk_api.isMemberGroup(id).catch(logger.error);
+                const is_have_feedback = await vk_api.isHaveFeedback(id).catch(logger.error);
+                logger.info(id + ' is day for agit? ' + last_agit_day + ' ' + !last_agit_day || new Date() - last_agit_day > 3 * 24 * 60 * 60 * 1000);
+                if(!last_agit_day || new Date() - last_agit_day > 3 * 24 * 60 * 60 * 1000){
+                    logger.info(id + ` now time for agit, answer_num=${answer_num}, friend_reply_times=${friend_reply_times}, is_member_group ${is_member_group}, is_have_feedback ${is_have_feedback}`);
+                    if (answer_num % 1 === 0 && !is_member_group) {
+                        logger.info(`${id} say for subscribe`);
+                        ctx.reply(getText('get_answer_subscribe', {}));
+                    } else if (answer_num % 2 === 0 && friend_reply_times < 3) {
+                        logger.info(`${id} say for reply friends`);
+                        ctx.session.student.upFriendReplyTime();
+                        ctx.reply(getText('get_answer_friend_reply', {}));
+                    } else if (answer_num % 3 === 0 && !is_have_feedback) {
+                        logger.info(`${id} say for feedback`);
+                        ctx.reply(getText('get_answer_feedback', {}));
+                    }
+                    if(answer_num == 3){
+                        ctx.session.student.resetAgit();
+                    } else {
+                        ctx.session.student.upAnswerNum();
+                    }
+                }
+              
                 ctx.session.student.saveStatistic(ctx.session.subject);
             } else {
                 ctx.reply(getText('error_menu', {}));

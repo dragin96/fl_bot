@@ -23,8 +23,7 @@ db.on('error', function (err) {
     console.error('connection error:', err.message);
 });
 
-let Student;
-let logger;
+let Student, Statistic, logger;
 /*Для лога*/
 module.exports.setLogger = function (_logger) {
     logger = _logger;
@@ -32,9 +31,39 @@ module.exports.setLogger = function (_logger) {
 module.exports.setStudent = function (_student) {
     Student = _student;
 };
-
+module.exports.setStatistic = function (_statistic) {
+    Statistic = _statistic;
+};
 
 const Mongo = module.exports.Mongo = {
+    getStatistic: () => {
+        return new Promise((resolve) => {
+            Statistic.findOne({
+
+            }, (err, statistic) => {
+                if (statistic) {
+                    resolve(statistic);
+                    return logger.info('mongoose.js >> Невозможно создать statistic, уже существует');
+                }
+
+                let new_statistic = new Statistic({
+                    wrong_reqs: [],
+                    subjects: {},
+                    send_date: new Date(),
+                    classes: {}
+                });
+                logger.info(new_statistic);
+                new_statistic.save(function (err) {
+                    if (err) {
+                        logger.error('save statistic error ' + err);
+                        return resolve(null);
+                    }
+                    logger.info('mongoose.js >> successfull save statistic');
+                    resolve(new_statistic);
+                });
+            });
+        });
+    },
     getStudentById: (id) => {
         return new Promise((resolve, reject) => {
             Student.findOne({
@@ -46,6 +75,18 @@ const Mongo = module.exports.Mongo = {
                 }
                 if (err) return reject(err);
                 resolve(student);
+            });
+        });
+    },
+    getAllStudents: () => {
+        return new Promise((resolve, reject) => {
+            Student.find({}, (err, students) => {
+                if (students === null) {
+                    logger.info('getAllStudents error');
+                    return resolve(null);
+                }
+                if (err) return reject(err);
+                resolve(students);
             });
         });
     },
@@ -64,24 +105,24 @@ const Mongo = module.exports.Mongo = {
     },
     //Создаем студент
     initStudent: async (id, class_lvl, name) => {
-        return new Promise(async resolve =>{
+        return new Promise(async resolve => {
             let student = await Mongo.getStudentById(id).catch(logger.info);
             if (student) {
                 resolve(null);
                 return logger.info('mongoose.js >> Невозможно создать, уже существует');
             }
-           
+
             let new_student = new Student({
                 vk_id: +id,
                 class_lvl: class_lvl,
                 name,
-                statistic: { }
+                statistic: {}
             });
             logger.info(new_student);
             Mongo.saveStudent(new_student);
             resolve(new_student);
         });
-       
+
     }
 };
 db.once('open', function callback() {
