@@ -261,11 +261,13 @@ module.exports.startVkChatbot = function (logger, Mongo, statistic) {
 
     function printMenu(ctx) {
         try {
-            let keyboards = getButtons(ctx);
+            let keyboards = getButtons(ctx); 
             let text = getMenuText(ctx);
-            if (keyboards) {
+            if (keyboards && keyboards.length) {
                 ctx.reply(text, null, Markup.keyboard(keyboards).oneTime());
                 return true;
+            } else if(keyboards && !keyboards.length){
+                ctx.reply(text);
             }
         } catch (e) {
             logger.error('print menu error' + e.message + ' ' + e.stack);
@@ -302,8 +304,8 @@ module.exports.startVkChatbot = function (logger, Mongo, statistic) {
 
     bot.event('group_leave', async (ctx) => {
         const id = ctx.message.user_id;
-        const name = await vk_api.getName(id);
-        ctx.reply(`${name}, жаль, что ты от нас уходишь! Тебе что-то не понравилось? Расскажи нам об этом: https://vk.com/topic-143873827_37354320 Я исправлюсь &#128519;`);
+        const name = await vk_api.getName(id).catch(logger.error);
+        ctx.reply(`${name? name : 'Эх'}, жаль, что ты от нас уходишь! Тебе что-то не понравилось? Расскажи нам об этом: https://vk.com/topic-143873827_37354320 Я исправлюсь &#128519;`);
     });
     bot.event('group_join', async (ctx) => {
         ctx.reply('Спасибо большое за твою подписку!');
@@ -314,9 +316,11 @@ module.exports.startVkChatbot = function (logger, Mongo, statistic) {
             return logger.info('Отклоняю событие ' + ctx.message.type);
         }
         const id = ctx.message.peer_id;
-        const student = await Mongo.getStudentById(id).catch(logger.error);
-        ctx.session.upTime=new Date();
-
+        const student = await Mongo.getStudentById(id).catch(err=>{
+            logger.error(err);
+            return;
+        });
+       /* ctx.session.upTime=new Date();
         setInterval(()=>{
             if(new Date() - ctx.session.upTime > 6 * 60 * 60 * 1000){
                 logger.info(`reset user with id = ${id} because long time not activity`);
@@ -329,13 +333,13 @@ module.exports.startVkChatbot = function (logger, Mongo, statistic) {
                 delete ctx.session.is_last_part;
                 ctx.session.upTime=new Date();
             }
-        }, 3 * 60 * 60 * 1000);
+        }, 3 * 60 * 60 * 1000);*/
 
         //такого ученика нет в базе
         if (student === null) {
             //сцена ввода класса
             logger.info(id + ' in remember');
-            ctx.session.name = await vk_api.getName(id);
+            ctx.session.name = await vk_api.getName(id).catch(logger.error);
             ctx.scene.enter('remember_me');
         } else {
             //сцена выбора действий

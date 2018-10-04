@@ -132,7 +132,7 @@ module.exports.init_print_menu_scene = function (getText, printMenu, vk_api, boo
                 let subpath = path;
                 subpath += '/' + splt.trim();
                 //logger.info('PATH' + subpath);
-                const res = await vk_api.uploadPhoto(subpath, ctx.message.peer_id);
+                const res = await vk_api.uploadPhoto(subpath, ctx.message.peer_id).catch(logger.error);
                 //logger.info('res', res);
                 attachments += 'photo' + res[0].owner_id + '_' + res[0].id + ',';
             }
@@ -190,7 +190,7 @@ module.exports.init_print_menu_scene = function (getText, printMenu, vk_api, boo
         if (ctx.message.text == '/reset') {
             logger.info(`Пользователь id=${ctx.message.peer_id} хочет сбросить бота`);
             clear_session(ctx);
-            ctx.reply('Бот успешно сброшен!');
+            ctx.reply('Бот успешно сброшен! Напиши что-нибудь, чтобы появилось меню.');
             ctx.scene.leave();
             return 'return';
         }
@@ -396,7 +396,7 @@ https://vk.com/gdz_bot`;
             }
 
             ctx.session.task = ctx.message.text;
-            const attachments = await getAnswer(ctx, ctx.session.task);
+            const attachments = await getAnswer(ctx, ctx.session.task).catch(logger.error);
             if (attachments) {
                 logger.info(id + ' Отправляю ответ, attachments', attachments);
 

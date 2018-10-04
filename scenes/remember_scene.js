@@ -16,12 +16,12 @@ module.exports.init_remember_scene = function (getText, Mongo, logger, vk_api, b
                 return logger.info('Отклоняю событие ' + ctx.message.type);
             }
             const class_lvl = ctx.message.text.match(/\d+/);
-            if (class_lvl === null || (class_lvl[0] < 1 && class_lvl[0] > 11)) {
+            if (class_lvl === null || (class_lvl[0] < 1 || class_lvl[0] > 11)) {
                 return ctx.reply(getText('error_class', {}));
             }
             ctx.session.class_lvl = +class_lvl[0];
             ctx.session.student = await Mongo.initStudent(ctx.message.peer_id, +class_lvl[0], ctx.session.name);
-            
+
             const res = await vk_api.uploadPhoto('./assets/keyboard.png', ctx.message.peer_id);
             let attachments = 'photo' + res[0].owner_id + '_' + res[0].id;
 
