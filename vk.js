@@ -91,15 +91,18 @@ const vk_api = {
 		console.log('get name for id', id);
 		const response = await vk.api.users.get({
 			user_ids: id
-		});
-		console.log('name is', response[0].first_name);
-		return response[0].first_name;
+		}).catch(logger.error);
+		if(response){
+			return response[0].first_name;
+		} 
+		return null;
+		
 	},
 	uploadPhoto: (path, id) => {
-		return new Promise(async resolve => {
+		return new Promise(async (resolve, reject) => {
 			const response = await vk.api.photos.getMessagesUploadServer({
 				id: id
-			});
+			}).catch(logger.error);
 
 			var formData = {
 				photo: fs.createReadStream(path)
@@ -112,23 +115,33 @@ const vk_api = {
 				if (err) {
 					return console.error('upload failed:', err);
 				}
-				console.log('Upload successful!  Server responded with:', body);
-				body = JSON.parse(body);
-				const response = await vk.api.photos.saveMessagesPhoto({
-					server: body.server,
-					photo: body.photo,
-					hash: body.hash
-				});
-				resolve(response);
+				try{
+					logger.info('Upload successful!  Server responded with: ' + body);
+					body = JSON.parse(body);
+					const response = await vk.api.photos.saveMessagesPhoto({
+						server: body.server,
+						photo: body.photo,
+						hash: body.hash
+					}).catch((err)=>{
+						logger.error(`uploadPhoto error ${err}`);
+						resolve(null);
+					});
+					resolve(response);
+				} catch(err){
+					logger.error(`uploadPhoto error; body=${body}`);
+					reject('bad body');
+				}
 			});
 		});
 	},
 	isMemberGroup: async (id) => {
-		
 		const response = await vk.api.groups.isMember({
 			group_id: process.env.vk_group_id,
 			user_id: id,
 			extended: 0
+		}).catch((err)=>{
+			logger.error(`isMemberGroup error ${err}`);
+			return false;
 		});
 		return Boolean(response);
 	},
@@ -138,6 +151,10 @@ const vk_api = {
 			topic_id: process.env.vk_topic,
 			count: 100,
 			start_comment_id: start
+		}).catch((err)=>{
+			vk_api.setToken(process.env.vk_bot_token);
+			logger.error(`isHaveFeedback error ${err}`);
+			return false;
 		});
 		vk_api.setToken(process.env.vk_bot_token);
 		const users = res.items;

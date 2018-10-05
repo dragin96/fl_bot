@@ -21,7 +21,7 @@ module.exports.init_remember_scene = function (getText, Mongo, logger, vk_api, b
             }
             ctx.session.class_lvl = +class_lvl[0];
             ctx.session.student = await Mongo.initStudent(ctx.message.peer_id, +class_lvl[0], ctx.session.name);
-            
+
             const res = await vk_api.uploadPhoto('./assets/keyboard.png', ctx.message.peer_id);
             let attachments = 'photo' + res[0].owner_id + '_' + res[0].id;
 
