@@ -16,7 +16,7 @@ module.exports.init_remember_scene = function (getText, Mongo, logger, vk_api, b
                 return logger.info('Отклоняю событие ' + ctx.message.type);
             }
             const class_lvl = ctx.message.text.match(/\d+/);
-            if (class_lvl === null || (class_lvl[0] < 1 && class_lvl[0] > 11)) {
+            if (class_lvl === null || (class_lvl[0] < 1 || class_lvl[0] > 11)) {
                 return ctx.reply(getText('error_class', {}));
             }
             ctx.session.class_lvl = +class_lvl[0];
