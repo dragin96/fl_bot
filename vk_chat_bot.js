@@ -68,7 +68,11 @@ module.exports.startVkChatbot = function (logger, Mongo, statistic) {
             logger.error('какая-то хрень с session', ctx.session);
             return null;
         }
-
+        
+        let id;
+        if(ctx.message && ctx.message.peer_id){
+            id = ctx.message.peer_id;
+        }
         const class_lvl = ctx.session.class_lvl;
         const stage = ctx.session.stage;
         const subject = ctx.session.subject;
@@ -81,8 +85,8 @@ module.exports.startVkChatbot = function (logger, Mongo, statistic) {
         let keys = [];
         let books_part;
 
-        logger.info('join getButtons switch stage=' + stage + '; class_lvl=' + class_lvl + '; subject=' + subject + '; author=' + author + '; part=' + part + ';parts=' + parts + '; task=' + task);
-
+        logger.info(id + ' join getButtons switch stage=' + stage + '; class_lvl=' + class_lvl + '; subject=' + subject + '; author=' + author + '; part=' + part + ';parts=' + parts + '; task=' + task);
+       
 
         switch (stage) {
             case 'need_change_class':
@@ -228,10 +232,12 @@ module.exports.startVkChatbot = function (logger, Mongo, statistic) {
                 ctx.session.is_overfull_keys = true;
                 ctx.session.overfull_first_key = keys[0];
                 ctx.session.overfull_last_key = keys[keys_length - 1];
-                console.log('Переполнено', keys_length);
                 keys = [];
             }
             for (let key of keys) {
+                if(key.length >= 40){
+                    key = key.substr(0, 39);
+                }
                 if (~key.toLowerCase().indexOf('модуль')) {
                     ctx.session.part_subname = 'модуль';
                 } else if (~key.toLowerCase().indexOf('§')) {
@@ -255,6 +261,10 @@ module.exports.startVkChatbot = function (logger, Mongo, statistic) {
             }
         } catch (e) {
             logger.error('error with getbuttons part2' + e.message + ' ' + e.stack);
+        }
+        if(!keyboards.length){
+            logger.warn(`${id} keyboards length is null`);
+            return null;
         }
         return keyboards;
     }

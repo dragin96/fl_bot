@@ -24,6 +24,7 @@ var studentSchema = mongoose.Schema({
     },
     last_agit_day: Date,
     friend_reply_times: Number,
+    feedback_times: Number,
     answer_num: Number,
     statistic: mongoose.Schema.Types.Mixed
 });
@@ -43,7 +44,12 @@ studentSchema.methods.upFriendReplyTime = function () {
     } 
     this.friend_reply_times++;
 };
-
+studentSchema.methods.upFeedbackTime = function () {
+    if(!this.feedback_times){
+        this.feedback_times=0;
+    } 
+    this.feedback_times++;
+};
 studentSchema.methods.changeClass = function (new_class) {
     this.class_lvl = new_class;
     this.save();

@@ -131,9 +131,13 @@ module.exports.init_print_menu_scene = function (getText, printMenu, vk_api, boo
             for (let splt of book_paths) {
                 let subpath = path;
                 subpath += '/' + splt.trim();
-                //logger.info('PATH' + subpath);
+                logger.info(id + ' PATH ' + subpath);
                 const res = await vk_api.uploadPhoto(subpath, ctx.message.peer_id).catch(logger.error);
-                //logger.info('res', res);
+                if(!res) {
+                    logger.error(`error with getAnswer, bad res ${res}`);
+                    return null;
+                }
+                logger.info(id + ' res ' + res);
                 attachments += 'photo' + res[0].owner_id + '_' + res[0].id + ',';
             }
             return attachments.substr(0, attachments.length - 1);
@@ -408,11 +412,13 @@ https://vk.com/gdz_bot`;
                 const answer_num = ctx.session.student.answer_num || 1;
                 const last_agit_day = ctx.session.student.last_agit_day;
                 const friend_reply_times = ctx.session.student.friend_reply_times || 0;
+                const feedback_times = ctx.session.student.feedback_times || 0;
+
                 const is_member_group = await vk_api.isMemberGroup(id).catch(logger.error);
-                const is_have_feedback = await vk_api.isHaveFeedback(id).catch(logger.error);
+                //const is_have_feedback = await vk_api.isHaveFeedback(id).catch(logger.error);
                 logger.info(id + ' is day for agit? ' + last_agit_day + ' ' + !last_agit_day || new Date() - last_agit_day > 3 * 24 * 60 * 60 * 1000);
                 if(!last_agit_day || new Date() - last_agit_day > 3 * 24 * 60 * 60 * 1000){
-                    logger.info(id + ` now time for agit, answer_num=${answer_num}, friend_reply_times=${friend_reply_times}, is_member_group ${is_member_group}, is_have_feedback ${is_have_feedback}`);
+                    logger.info(id + ` now time for agit, answer_num=${answer_num}, friend_reply_times=${friend_reply_times}, is_member_group ${is_member_group}, feedback_times ${feedback_times}`);
                     if (answer_num % 1 === 0 && !is_member_group) {
                         logger.info(`${id} say for subscribe`);
                         ctx.reply(getText('get_answer_subscribe', {}));
@@ -420,8 +426,9 @@ https://vk.com/gdz_bot`;
                         logger.info(`${id} say for reply friends`);
                         ctx.session.student.upFriendReplyTime();
                         ctx.reply(getText('get_answer_friend_reply', {}));
-                    } else if (answer_num % 3 === 0 && !is_have_feedback) {
+                    } else if (answer_num % 3 === 0 && feedback_times < 5) {
                         logger.info(`${id} say for feedback`);
+                        ctx.session.student.upFeedbackTime();
                         ctx.reply(getText('get_answer_feedback', {}));
                     }
                     if(answer_num == 3){

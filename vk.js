@@ -103,7 +103,10 @@ const vk_api = {
 			const response = await vk.api.photos.getMessagesUploadServer({
 				id: id
 			}).catch(logger.error);
-
+			if(!response || !response.upload_url){
+				logger.error(`getMessagesUploadServer error response ${response}`);
+				resolve(null);
+			}
 			var formData = {
 				photo: fs.createReadStream(path)
 			};
