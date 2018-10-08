@@ -121,6 +121,10 @@ const vk_api = {
 				try{
 					logger.info('Upload successful!  Server responded with: ' + body);
 					body = JSON.parse(body);
+					if(body.photo == null){
+						logger.error(`uploadPhoto error, body.photo is null; formData=${formData}, getMessagesUploadServer responce=${response}`)
+						return resolve(null);
+					}
 					const response = await vk.api.photos.saveMessagesPhoto({
 						server: body.server,
 						photo: body.photo,
@@ -131,7 +135,7 @@ const vk_api = {
 					});
 					resolve(response);
 				} catch(err){
-					logger.error(`uploadPhoto error; body=${body}`);
+					logger.error(`uploadPhoto error; body=${body}, err=${err}`);
 					reject('bad body');
 				}
 			});

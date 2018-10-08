@@ -22,7 +22,7 @@ module.exports.init_print_menu_scene = function (getText, printMenu, vk_api, boo
     }
 
     function error_menu_handler(ctx, stage) {
-        const id = ctx.message.peer_id;
+        const id = ctx.message.from_id || ctx.message.peer_id;
         logger.info(id + ' error_menu_handler ' + stage);
         ctx.session.parts = [];
         ctx.session.stage = stage == 'subpart' ? 'part' : stage;
@@ -55,8 +55,8 @@ module.exports.init_print_menu_scene = function (getText, printMenu, vk_api, boo
     }
 
     function ctx_menu_handler(ctx, text_param, stage, ret_stage, ret_step) {
-        const id = ctx.message.peer_id;
-        logger.info(id + ' ctx_menu_handler enter, msg = ' + ctx.message.text);
+        const id = ctx.message.from_id || ctx.message.peer_id;
+        logger.info(`${id} ctx_menu_handler enter, msg=${ctx.message.text}, text_param=${text_param}, stage=${stage}, ret_stage=${ret_stage}, ret_step=${ret_step}`);
         let isReturn = ctx.message.text == 'Вернуться';
         isReturn = isReturn || ctx.message.text == 'Сменить раздел';
         isReturn = isReturn || ctx.message.text == 'Сменить автора';
@@ -79,8 +79,12 @@ module.exports.init_print_menu_scene = function (getText, printMenu, vk_api, boo
             return 'return';
         } else if (isReturn) {
             if (ctx.session.stage == 'subpart') {
+                logger.info(id + ' ctx_menu_handler return subpart');
                 ctx.session.stage = 'part';
+            } else if(!ret_stage || !ret_step){
+                logger.error(`bad ret stage (${ret_stage}) or ret step (${ret_step}) `);
             } else {
+                logger.info(`${id} ctx_menu_handler return step (${ret_step}) and ret stage (${ret_stage})`);
                 ctx.session.stage = ret_stage;
                 ctx.scene.selectStep(ret_step);
             }
@@ -93,11 +97,10 @@ module.exports.init_print_menu_scene = function (getText, printMenu, vk_api, boo
         logger.info(id + ' next stage ' + stage);
         ctx.session[text_param] = ctx.message.text;
         ctx.session.stage = stage;
-        logger.info(id + ' ctx_menu_handler end');
     }
 
     async function getAnswer(ctx, task) {
-        const id = ctx.message.peer_id;
+        const id = ctx.message.from_id || ctx.message.peer_id;
         const class_lvl = ctx.session.class_lvl;
         const subject = ctx.session.subject;
         const author = ctx.session.author;
@@ -144,7 +147,7 @@ module.exports.init_print_menu_scene = function (getText, printMenu, vk_api, boo
         } catch (e) {
             statistic.saveWrongReq({
                 first_name: ctx.session.student.name,
-                vk_id: ctx.message.peer_id,
+                vk_id: ctx.message.from_id || ctx.message.peer_id,
                 class_lvl,
                 subject,
                 author,
@@ -177,7 +180,7 @@ module.exports.init_print_menu_scene = function (getText, printMenu, vk_api, boo
     }
 
     function changeSubject(ctx) {
-        const id = ctx.message.peer_id;
+        const id = ctx.message.from_id || ctx.message.peer_id;
         logger.info(id + ' change subject');
         ctx.session.stage = 'select_object';
         ctx.session.parts = [];
@@ -191,8 +194,12 @@ module.exports.init_print_menu_scene = function (getText, printMenu, vk_api, boo
             logger.info('Отклоняю событие ' + ctx.message.type);
             return 'return';
         }
+        let match=ctx.message.text.match(/\[.*\],? /);
+        if(match){
+            ctx.message.text=ctx.message.text.replace(match[0], '');
+        }
         if (ctx.message.text == '/reset') {
-            logger.info(`Пользователь id=${ctx.message.peer_id} хочет сбросить бота`);
+            logger.info(`Пользователь id=${ctx.message.from_id || ctx.message.peer_id} хочет сбросить бота`);
             clear_session(ctx);
             ctx.reply('Бот успешно сброшен! Напиши что-нибудь, чтобы появилось меню.');
             ctx.scene.leave();
@@ -202,16 +209,17 @@ module.exports.init_print_menu_scene = function (getText, printMenu, vk_api, boo
     }
 
     function selectObjectStep(ctx) {
-        const id = ctx.message.peer_id;
-        const message = ctx.message.text;
+        const id = ctx.message.from_id || ctx.message.peer_id;
+        let message = ctx.message.text;
         try {
             logger.info('first print_menu_scene, id=' + id + '; message=' + message);
             if (checkCtx(ctx) === 'return') {
                 return;
             }
+            message = ctx.message.text;
             ctx.session.stage = 'select_object';
             if (ctx.message.text == 'Сменить класс') {
-                logger.info('first print_menu_scene return, change class, id=' + id + '; message=' + message);
+                logger.info(id + ' first print_menu_scene return, change class; message=' + message);
                 return changeClass(ctx);
             }
             const res = printMenu(ctx);
@@ -230,20 +238,21 @@ https://vk.com/gdz_bot`;
 
             }
             ctx.scene.next();
-            logger.info('first print_menu_scene end, id=' + id + '; message=' + message);
+            logger.info(id + ' first print_menu_scene end message=' + message);
         } catch (e) {
-            logger.error('first print_menu_scene error, id=' + id + '; message=' + message + ';error=' + e.message + ' ' + e.stack);
+            logger.error(id + ' first print_menu_scene error message=' + message + ';error=' + e.message + ' ' + e.stack);
         }
     }
 
     function selectSubjectStep(ctx) {
-        const id = ctx.message.peer_id;
-        const message = ctx.message.text;
+        const id = ctx.message.from_id || ctx.message.peer_id;
+        let message = ctx.message.text;
         try {
             logger.info('second print_menu_scene, id=' + id + '; message=' + message);
             if (checkCtx(ctx) === 'return') {
                 return;
             }
+            message = ctx.message.text;
             const res_handler = ctx_menu_handler(ctx, 'subject', 'author');
             if (res_handler == 'return') {
                 logger.info('second print_menu_scene return, res_handler, id=' + id + '; message=' + message);
@@ -264,12 +273,13 @@ https://vk.com/gdz_bot`;
     }
 
     function selectAuthorStep(ctx) {
-        const id = ctx.message.peer_id;
-        const message = ctx.message.text;
+        const id = ctx.message.from_id || ctx.message.peer_id;
+        let message = ctx.message.text;
         try {
             if (checkCtx(ctx) === 'return') {
                 return;
             }
+            message = ctx.message.text;
             const res_handler = ctx_menu_handler(ctx, 'author', 'part', 'select_object', 1);
             if (res_handler == 'return') {
                 logger.info('third print_menu_scene return, res_handler, id=' + id + '; message=' + message);
@@ -303,13 +313,14 @@ https://vk.com/gdz_bot`;
     }
 
     function selectPartStep(ctx) {
-        const id = ctx.message.peer_id;
-        const message = ctx.message.text;
+        const id = ctx.message.from_id || ctx.message.peer_id;
+        let message = ctx.message.text;
         try {
             logger.info('fourth print_menu_scene, id=' + id + '; message=' + message);
             if (checkCtx(ctx) === 'return') {
                 return;
             }
+            message = ctx.message.text;
             if (ctx.message.text == 'Сменить предмет') {
                 logger.info(id + ' fourth print_menu_scene return, changesubject');
                 clear_session(ctx);
@@ -366,13 +377,14 @@ https://vk.com/gdz_bot`;
     }
 
     async function selectTaskStep(ctx) {
-        const id = ctx.message.peer_id;
-        const message = ctx.message.text;
+        const id = ctx.message.from_id || ctx.message.peer_id;
+        let message = ctx.message.text;
         try {
             logger.info('finally print_menu_scene, id=' + id + '; message=' + message);
             if (checkCtx(ctx) === 'return') {
                 return;
             }
+            message = ctx.message.text;
             ctx.session.stage = 'get_answer';
             if (ctx.message.text == 'Инструкция') {
                 let keyboards = getButtons(ctx);

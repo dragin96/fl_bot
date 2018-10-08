@@ -70,8 +70,8 @@ module.exports.startVkChatbot = function (logger, Mongo, statistic) {
         }
         
         let id;
-        if(ctx.message && ctx.message.peer_id){
-            id = ctx.message.peer_id;
+        if(ctx.message && (ctx.message.from_id || ctx.message.peer_id)){
+            id = ctx.message.from_id || ctx.message.peer_id;
         }
         const class_lvl = ctx.session.class_lvl;
         const stage = ctx.session.stage;
@@ -98,7 +98,7 @@ module.exports.startVkChatbot = function (logger, Mongo, statistic) {
                     logger.warn(`class_lvl ${class_lvl} not found`);
                     statistic.saveWrongReq({
                         first_name: ctx.session.student.name,
-                        vk_id: ctx.message.peer_id,
+                        vk_id: ctx.message.from_id || ctx.message.peer_id,
                         class_lvl,
                         message: ctx.message.text
                     });
@@ -115,7 +115,7 @@ module.exports.startVkChatbot = function (logger, Mongo, statistic) {
                     logger.warn(`subject ${subject} not found in ${class_lvl}`);
                     statistic.saveWrongReq({
                         first_name: ctx.session.student.name,
-                        vk_id: ctx.message.peer_id,
+                        vk_id: ctx.message.from_id || ctx.message.peer_id,
                         class_lvl,
                         subject,
                         message: ctx.message.text
@@ -131,7 +131,7 @@ module.exports.startVkChatbot = function (logger, Mongo, statistic) {
                     logger.warn(`author ${author} not found in ${class_lvl}, ${subject}`);
                     statistic.saveWrongReq({
                         first_name: ctx.session.student.name,
-                        vk_id: ctx.message.peer_id,
+                        vk_id: ctx.message.from_id || ctx.message.peer_id,
                         class_lvl,
                         subject,
                         author,
@@ -149,7 +149,7 @@ module.exports.startVkChatbot = function (logger, Mongo, statistic) {
                         logger.warn(`${part} not found in ${class_lvl}, ${subject}, ${author}, ${parts}`);
                         statistic.saveWrongReq({
                             first_name: ctx.session.student.name,
-                            vk_id: ctx.message.peer_id,
+                            vk_id: ctx.message.from_id || ctx.message.peer_id,
                             class_lvl,
                             subject,
                             author,
@@ -173,7 +173,7 @@ module.exports.startVkChatbot = function (logger, Mongo, statistic) {
                             logger.warn(`${part} not found in ${class_lvl}, ${subject}, ${author}, ${parts}`);
                             statistic.saveWrongReq({
                                 first_name: ctx.session.student.name,
-                                vk_id: ctx.message.peer_id,
+                                vk_id: ctx.message.from_id || ctx.message.peer_id,
                                 class_lvl,
                                 subject,
                                 author,
@@ -189,7 +189,7 @@ module.exports.startVkChatbot = function (logger, Mongo, statistic) {
                     if (books[class_lvl][subject][author][part] === undefined) {
                         statistic.saveWrongReq({
                             first_name: ctx.session.student.name,
-                            vk_id: ctx.message.peer_id,
+                            vk_id: ctx.message.from_id || ctx.message.peer_id,
                             class_lvl,
                             subject,
                             author,
@@ -325,7 +325,7 @@ module.exports.startVkChatbot = function (logger, Mongo, statistic) {
         if (ctx.message.type != 'message_new') {
             return logger.info('Отклоняю событие ' + ctx.message.type);
         }
-        const id = ctx.message.peer_id;
+        const id = ctx.message.from_id || ctx.message.peer_id;
         const student = await Mongo.getStudentById(id).catch(err=>{
             logger.error(err);
             return;
