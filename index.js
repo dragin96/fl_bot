@@ -36,8 +36,11 @@ const bot = new VkBot({
     logger.error('Statistic is null');
     throw 'Statistic is null';
   }
+
+
   require('./vk_chat_bot.js').startVkChatbot(logger, Mongo, statistic);
   setInterval(() => {
     sendStatistic(Mongo, statistic);
+    statistic.saveWrongReqForInterval();
   }, 5 * 60 * 1000);
 })();

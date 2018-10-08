@@ -135,7 +135,7 @@ module.exports.init_print_menu_scene = function (getText, printMenu, vk_api, boo
                 const res = await vk_api.uploadPhoto(subpath, ctx.message.peer_id).catch(logger.error);
                 if(!res) {
                     logger.error(`error with getAnswer, bad res ${res}`);
-                    return null;
+                    return 'error';
                 }
                 logger.info(id + ' res ' + res);
                 attachments += 'photo' + res[0].owner_id + '_' + res[0].id + ',';
@@ -401,7 +401,7 @@ https://vk.com/gdz_bot`;
 
             ctx.session.task = ctx.message.text;
             const attachments = await getAnswer(ctx, ctx.session.task).catch(logger.error);
-            if (attachments) {
+            if (attachments && attachments!='error') {
                 logger.info(id + ' Отправляю ответ, attachments', attachments);
 
                 const answers = ['Вот твой ответ', 'Лови!', 'Дерзай!', 'Держи ответ'];
@@ -439,6 +439,8 @@ https://vk.com/gdz_bot`;
                 }
               
                 ctx.session.student.saveStatistic(ctx.session.subject);
+            } else if(attachments && attachments=='error'){
+                ctx.reply('Извини, что-то пошло не так, попробуй еще раз');
             } else {
                 ctx.reply(getText('error_menu', {}));
             }

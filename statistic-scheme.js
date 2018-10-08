@@ -62,9 +62,15 @@ statisticSchema.methods.saveWrongReq = function (req) {
         parts: req.parts,
         message: req.message,
     });
+
+};
+
+statisticSchema.methods.saveWrongReqForInterval = function (req) {
     this.markModified('wrong_reqs');
     this.save();
 };
+
+
 
 statisticSchema.methods.getStatistic = function () {
     return this.statistic;

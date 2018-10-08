@@ -94,8 +94,7 @@ const Mongo = module.exports.Mongo = {
         return new Promise((resolve) => {
             student.save(function (err) {
                 if (err) {
-                    console.log('save student error', err);
-                    logger.error(err);
+                    logger.error('save student error ' + err);
                     return resolve();
                 }
                 logger.info('mongoose.js >> successfull save');
@@ -119,7 +118,7 @@ const Mongo = module.exports.Mongo = {
                 statistic: {}
             });
             logger.info(new_student);
-            Mongo.saveStudent(new_student);
+            await Mongo.saveStudent(new_student);
             resolve(new_student);
         });
 
