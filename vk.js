@@ -98,19 +98,24 @@ const vk_api = {
 		return null;
 		
 	},
-	uploadPhoto: (path, id) => {
+	uploadPhoto: (path, id, form) => {
 		return new Promise(async (resolve, reject) => {
 			const response = await vk.api.photos.getMessagesUploadServer({
 				id: id
-			}).catch(logger.error);
-			if(!response || !response.upload_url){
-				logger.error(`getMessagesUploadServer error response ${response}`);
-				resolve(null);
+			}).catch((err)=>{
+				logger.error(err +'; getMessagesUploadServer error response', response);
+				return resolve(null);
+			});
+			var formData;
+			if(!form){
+				formData = {
+					photo: fs.createReadStream(path)
+				};
+			} else {
+				formData=form;
 			}
-			var formData = {
-				photo: fs.createReadStream(path)
-			};
-
+			logger.info('getMessagesUploadServer', response);
+			logger.info('formdata', formData);
 			request.post({
 				url: response.upload_url,
 				formData: formData
@@ -120,9 +125,10 @@ const vk_api = {
 				}
 				try{
 					logger.info('Upload successful!  Server responded with: ' + body);
+					logger.info('httpResponse', httpResponse);
 					body = JSON.parse(body);
-					if(body.photo == null){
-						logger.error(`uploadPhoto error, body.photo is null; formData=${formData}, getMessagesUploadServer responce=${response}`)
+					if(body.photo == 'null'){
+						logger.error('uploadPhoto error, body.photo is null', formData);
 						return resolve(null);
 					}
 					const response = await vk.api.photos.saveMessagesPhoto({
@@ -131,9 +137,11 @@ const vk_api = {
 						hash: body.hash
 					}).catch((err)=>{
 						logger.error(`uploadPhoto error ${err}`);
-						resolve(null);
+						return resolve(null);
 					});
-					resolve(response);
+					setTimeout(()=>{
+						resolve(response);
+					}, 500);
 				} catch(err){
 					logger.error(`uploadPhoto error; body=${body}, err=${err}`);
 					reject('bad body');

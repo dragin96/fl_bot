@@ -1,9 +1,12 @@
 const Scene = require('node-vk-bot-api/lib/scene');
 
-module.exports.init_remember_scene = function (getText, Mongo, logger, vk_api, bot) {
+module.exports.init_remember_scene = function (getText, Mongo, logger, vk_api, bot, checkCtx) {
     const remember_scene = new Scene('remember_me',
         (ctx) => {
             logger.info('first scene remember');
+            if (checkCtx(ctx) === 'return') {
+                return;
+            }
             if (ctx.message.type != 'message_new') {
                 return logger.info('Отклоняю событие ' + ctx.message.type);
             }
@@ -14,6 +17,9 @@ module.exports.init_remember_scene = function (getText, Mongo, logger, vk_api, b
         },
         async (ctx) => {
             logger.info('second remember scene');
+            if (checkCtx(ctx) === 'return') {
+                return;
+            }
             if (ctx.message.type != 'message_new') {
                 return logger.info('Отклоняю событие ' + ctx.message.type);
             }

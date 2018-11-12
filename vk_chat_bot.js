@@ -9,6 +9,7 @@ const vk_api = vk.vk_api;
 
 const books = require('./dirRead.js').structFile(process.env.books_path);
 
+const answer_templates=require('./answer-templates.js').answer_templates;
 module.exports.startVkChatbot = function (logger, Mongo, statistic) {
     // logger.info('books', books);
 
@@ -68,9 +69,9 @@ module.exports.startVkChatbot = function (logger, Mongo, statistic) {
             logger.error('какая-то хрень с session', ctx.session);
             return null;
         }
-        
+
         let id;
-        if(ctx.message && (ctx.message.from_id || ctx.message.peer_id)){
+        if (ctx.message && (ctx.message.from_id || ctx.message.peer_id)) {
             id = ctx.message.from_id || ctx.message.peer_id;
         }
         const class_lvl = ctx.session.class_lvl;
@@ -86,7 +87,7 @@ module.exports.startVkChatbot = function (logger, Mongo, statistic) {
         let books_part;
 
         logger.info(id + ' join getButtons switch stage=' + stage + '; class_lvl=' + class_lvl + '; subject=' + subject + '; author=' + author + '; part=' + part + ';parts=' + parts + '; task=' + task);
-       
+
 
         switch (stage) {
             case 'need_change_class':
@@ -106,7 +107,7 @@ module.exports.startVkChatbot = function (logger, Mongo, statistic) {
                 }
                 keys = Object.keys(books[class_lvl]);
 
-                keyboards.push([Markup.button('Экстренная помощь', 'positive', 'stats'), Markup.button('Добавить предмет/автора', 'positive', 'stats')]);
+                keyboards.push([Markup.button('Экстренная помощь', 'positive', 'stats'), Markup.button('Добавить учебник', 'positive', 'stats')]);
                 keyboards.push([Markup.button('Сменить класс', 'negative'), Markup.button('Инструкция', 'positive')]);
 
                 break;
@@ -123,7 +124,7 @@ module.exports.startVkChatbot = function (logger, Mongo, statistic) {
                     return null;
                 }
                 keys = Object.keys(books[class_lvl][subject]);
-                keyboards.push([Markup.button('Экстренная помощь', 'positive', 'stats'), Markup.button('Добавить предмет/автора', 'positive', 'stats')]);
+                keyboards.push([Markup.button('Экстренная помощь', 'positive', 'stats'), Markup.button('Добавить учебник', 'positive', 'stats')]);
                 keyboards.push([Markup.button('Сменить предмет', 'negative'), Markup.button('Инструкция', 'positive')]);
                 break;
             case 'part':
@@ -224,10 +225,10 @@ module.exports.startVkChatbot = function (logger, Mongo, statistic) {
                 max_button_in_row = 1;
             } else if (keys_length <= 16) {
                 max_button_in_row = 2;
-            } else if (keys_length <= 24) {
+            /*} else if (keys_length <= 24) {
                 max_button_in_row = 3;
             } else if (keys_length <= 32) {
-                max_button_in_row = 4;
+                max_button_in_row = 4;*/
             } else {
                 ctx.session.is_overfull_keys = true;
                 ctx.session.overfull_first_key = keys[0];
@@ -235,7 +236,7 @@ module.exports.startVkChatbot = function (logger, Mongo, statistic) {
                 keys = [];
             }
             for (let key of keys) {
-                if(key.length >= 40){
+                if (key.length >= 40) {
                     key = key.substr(0, 39);
                 }
                 if (~key.toLowerCase().indexOf('модуль')) {
@@ -262,7 +263,7 @@ module.exports.startVkChatbot = function (logger, Mongo, statistic) {
         } catch (e) {
             logger.error('error with getbuttons part2' + e.message + ' ' + e.stack);
         }
-        if(!keyboards.length){
+        if (!keyboards.length) {
             logger.warn(`${id} keyboards length is null`);
             return null;
         }
@@ -271,12 +272,12 @@ module.exports.startVkChatbot = function (logger, Mongo, statistic) {
 
     function printMenu(ctx) {
         try {
-            let keyboards = getButtons(ctx); 
+            let keyboards = getButtons(ctx);
             let text = getMenuText(ctx);
             if (keyboards && keyboards.length) {
                 ctx.reply(text, null, Markup.keyboard(keyboards).oneTime());
                 return true;
-            } else if(keyboards && !keyboards.length){
+            } else if (keyboards && !keyboards.length) {
                 ctx.reply(text);
             }
         } catch (e) {
@@ -293,18 +294,76 @@ module.exports.startVkChatbot = function (logger, Mongo, statistic) {
         logger.info('change class end');
     }
 
+    function clear_session(ctx) {
+        delete ctx.session.subject;
+        delete ctx.session.author;
+        delete ctx.session.parts;
+        delete ctx.session.part;
+        delete ctx.session.task;
+        delete ctx.session.is_last_part;
+    }
+
+    function checkCtx(ctx) {
+        ctx.session.upTime = new Date();
+        if (ctx.message.type != 'message_new') {
+            logger.info('Отклоняю событие ' + ctx.message.type);
+            return 'return';
+        }
+        let match = ctx.message.text.match(/\[.*\],? /);
+        if (match) {
+            ctx.message.text = ctx.message.text.replace(match[0], '');
+        }
+        if (ctx.message.text == '/reset') {
+            logger.info(`Пользователь id=${ctx.message.from_id || ctx.message.peer_id} хочет сбросить бота`);
+            clear_session(ctx);
+            ctx.reply('Бот успешно сброшен! Напиши что-нибудь, чтобы появилось меню.');
+            ctx.scene.leave();
+            return 'return';
+        }
+        for(let answer of answer_templates){
+            if(~answer.trigger.indexOf(ctx.message.text)){
+                ctx.reply(answer.reply);
+                return 'return';
+            }    
+        }
+        
+
+        return null;
+    }
     const bot = new VkBot({
         token: process.env.vk_bot_token,
         group_id: process.env.vk_group_id
     });
 
     const getText = require('./scenes/text_scenes.js').getText;
-    const print_menu_scene = require('./scenes/print_menu_scene.js').init_print_menu_scene(getText, printMenu, vk_api, books, bot, compareNumeric, changeClass, getButtons, logger, getMenuText, statistic);
-    const remember_scene = require('./scenes/remember_scene.js').init_remember_scene(getText, Mongo, logger, vk_api, bot);
-    const start_scene = require('./scenes/start_scene.js').init_start_scene(printMenu, changeClass, logger);
-    const change_class_scene = require('./scenes/change_class_scene.js').init_change_class_scene(logger);
+    const print_menu_scene = require('./scenes/print_menu_scene.js').init_print_menu_scene(
+        getText,
+        printMenu,
+        vk_api,
+        books,
+        bot,
+        compareNumeric,
+        changeClass,
+        getButtons,
+        logger,
+        getMenuText,
+        statistic,
+        checkCtx,
+        clear_session
+    );
+    const remember_scene = require('./scenes/remember_scene.js').init_remember_scene(
+        getText,
+        Mongo,
+        logger,
+        vk_api,
+        bot,
+        checkCtx,
+        clear_session
+    );
+    // const start_scene = require('./scenes/start_scene.js').init_start_scene(printMenu, changeClass, logger);
+    const change_class_scene = require('./scenes/change_class_scene.js').init_change_class_scene(logger, checkCtx);
     const session = new Session();
-    const stage = new Stage(print_menu_scene, remember_scene, start_scene, change_class_scene);
+    const stage = new Stage(print_menu_scene, remember_scene, change_class_scene);
     bot.use(session.middleware());
     bot.use(stage.middleware());
 
@@ -326,24 +385,19 @@ module.exports.startVkChatbot = function (logger, Mongo, statistic) {
             return logger.info('Отклоняю событие ' + ctx.message.type);
         }
         const id = ctx.message.from_id || ctx.message.peer_id;
-        const student = await Mongo.getStudentById(id).catch(err=>{
+        const student = await Mongo.getStudentById(id).catch(err => {
             logger.error(err);
             return;
         });
-       /* ctx.session.upTime=new Date();
-        setInterval(()=>{
-            if(new Date() - ctx.session.upTime > 6 * 60 * 60 * 1000){
-                logger.info(`reset user with id = ${id} because long time not activity`);
-                ctx.stage.leave();
-                delete ctx.session.subject;
-                delete ctx.session.author;
-                delete ctx.session.parts;
-                delete ctx.session.part;
-                delete ctx.session.task;
-                delete ctx.session.is_last_part;
-                ctx.session.upTime=new Date();
-            }
-        }, 3 * 60 * 60 * 1000);*/
+        /* ctx.session.upTime=new Date();
+         setInterval(()=>{
+             if(new Date() - ctx.session.upTime > 6 * 60 * 60 * 1000){
+                 logger.info(`reset user with id = ${id} because long time not activity`);
+                 ctx.stage.leave();
+                 clear_session();
+                 ctx.session.upTime=new Date();
+             }
+         }, 3 * 60 * 60 * 1000);*/
 
         //такого ученика нет в базе
         if (student === null) {

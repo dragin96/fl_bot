@@ -1,7 +1,30 @@
 const Scene = require('node-vk-bot-api/lib/scene');
 
 const Markup = require('node-vk-bot-api/lib/markup');
-module.exports.init_print_menu_scene = function (getText, printMenu, vk_api, books, bot, compareNumeric, changeClass, getButtons, logger, getMenuText, statistic) {
+
+const EventEmitter = require('events');
+
+class MyEmitter extends EventEmitter {}
+
+const myEmitter = new MyEmitter();
+
+let queque=[];
+let global_answers={};
+module.exports.init_print_menu_scene = function (
+    getText,
+    printMenu,
+    vk_api,
+    books,
+    bot,
+    compareNumeric,
+    changeClass,
+    getButtons,
+    logger,
+    getMenuText,
+    statistic,
+    checkCtx,
+    clear_session
+) {
     function isLastPart(ctx) {
         try {
             const class_lvl = ctx.session.class_lvl;
@@ -73,7 +96,7 @@ module.exports.init_print_menu_scene = function (getText, printMenu, vk_api, boo
             let keyboards = getButtons(ctx);
             ctx.reply(getText('instruction', {}), null, Markup.keyboard(keyboards).oneTime());
             return 'return';
-        } else if (ctx.message.text == 'Добавить предмет/автора') {
+        } else if (ctx.message.text == 'Добавить учебник') {
             let keyboards = getButtons(ctx);
             ctx.reply('Переходи по ссылке! https://vk.com/topic-143873827_41677637', null, Markup.keyboard(keyboards).oneTime());
             return 'return';
@@ -81,7 +104,7 @@ module.exports.init_print_menu_scene = function (getText, printMenu, vk_api, boo
             if (ctx.session.stage == 'subpart') {
                 logger.info(id + ' ctx_menu_handler return subpart');
                 ctx.session.stage = 'part';
-            } else if(!ret_stage || !ret_step){
+            } else if (!ret_stage || !ret_step) {
                 logger.error(`bad ret stage (${ret_stage}) or ret step (${ret_step}) `);
             } else {
                 logger.info(`${id} ctx_menu_handler return step (${ret_step}) and ret stage (${ret_stage})`);
@@ -99,7 +122,85 @@ module.exports.init_print_menu_scene = function (getText, printMenu, vk_api, boo
         ctx.session.stage = stage;
     }
 
-    async function getAnswer(ctx, task) {
+    function sendAnswers(){
+        try{
+        let keys = Object.keys(global_answers);
+        if(!keys.length){
+            return;
+        }
+        logger.info('Длина ответов: ' + keys.length);
+        logger.info('Список ответов:',global_answers);
+        for(let key of keys){
+            let answer = global_answers[key];
+            if(answer.count == answer.need_count){
+                myEmitter.emit(answer.event_name, {
+                    res: answer.res.substr(0, answer.res.length-1),
+                    peer_id: answer.peer_id
+                });
+                delete global_answers[key];
+            }
+        }
+        }catch(e){
+            logger.error('sendAnswers error ' + e);
+        }
+    }
+
+    /*
+    queque: [
+        {path: '1', peer_id: '1', from_id: '1'},
+        {path: '2', peer_id: '1', from_id: '1'},
+        {path: '3', peer_id: '1', from_id: '1'},
+    ]
+*/
+    function checkQueque(){
+        sendAnswers();
+        if(!queque.length){
+            return;
+        }
+        logger.info('Длина очереди: ' + queque.length);
+        logger.info('Список очереди:', queque);
+    
+        for(let i=0; i < queque.length > 10? 10 : queque.length; i++){
+            (async ()=>{
+                let que = queque.shift();
+                try{
+                   
+                    logger.info('Проверяю queque', que);
+                    const res = await vk_api.uploadPhoto(que.path, que.peer_id).catch(logger.error);
+                    if (!res) {
+                        if(global_answers[que.from_id]){
+                            delete global_answers[que.from_id];
+                        }
+                        myEmitter.emit(que.event_name, null);
+                        logger.error(`${que.from_id} error with getAnswer, bad res ${res}`);
+                        return;
+                    }
+                    logger.info(' res ' + res);
+                    if(!global_answers[que.from_id]){
+                        global_answers[que.from_id]={
+                            count: 0,
+                            res: '',
+                            need_count: que.need_count,
+                            event_name: que.event_name,
+                            peer_id: que.peer_id
+                        };
+                    }
+                    global_answers[que.from_id].count++;
+                    global_answers[que.from_id].res += 'photo' + res[0].owner_id + '_' + res[0].id + ',';
+                    return;
+                }catch(e){
+                    logger.error('check queque error ' + e);
+                    if(global_answers[que.from_id]){
+                        delete global_answers[que.from_id];
+                    }
+                    myEmitter.emit(que.event_name, 'error');
+                    return;
+                }
+            })();
+        }
+      
+    }
+    async function getAnswer(ctx, task, event_name) {
         const id = ctx.message.from_id || ctx.message.peer_id;
         const class_lvl = ctx.session.class_lvl;
         const subject = ctx.session.subject;
@@ -130,20 +231,21 @@ module.exports.init_print_menu_scene = function (getText, printMenu, vk_api, boo
                 book_paths = books[ctx.session.class_lvl][ctx.session.subject][ctx.session.author][ctx.session.part][task];
             }
 
-            let attachments = '';
+          
             for (let splt of book_paths) {
                 let subpath = path;
                 subpath += '/' + splt.trim();
                 logger.info(id + ' PATH ' + subpath);
-                const res = await vk_api.uploadPhoto(subpath, ctx.message.peer_id).catch(logger.error);
-                if(!res) {
-                    logger.error(`error with getAnswer, bad res ${res}`);
-                    return 'error';
-                }
-                logger.info(id + ' res ' + res);
-                attachments += 'photo' + res[0].owner_id + '_' + res[0].id + ',';
+                queque.push({
+                    peer_id: ctx.message.peer_id,
+                    path: subpath,
+                    from_id:  ctx.message.from_id,
+                    need_count: book_paths.length,
+                    event_name: event_name
+                });
+                
             }
-            return attachments.substr(0, attachments.length - 1);
+           // return attachments.substr(0, attachments.length - 1);
         } catch (e) {
             statistic.saveWrongReq({
                 first_name: ctx.session.student.name,
@@ -155,7 +257,8 @@ module.exports.init_print_menu_scene = function (getText, printMenu, vk_api, boo
                 message: ctx.message.text
             });
             logger.warn(id + ' getanswer error' + e);
-            return null;
+            myEmitter.emit(event_name, null);
+            return;
         }
 
     }
@@ -170,14 +273,7 @@ module.exports.init_print_menu_scene = function (getText, printMenu, vk_api, boo
         return null;
     }
 
-    function clear_session(ctx) {
-        delete ctx.session.subject;
-        delete ctx.session.author;
-        delete ctx.session.parts;
-        delete ctx.session.part;
-        delete ctx.session.task;
-        delete ctx.session.is_last_part;
-    }
+
 
     function changeSubject(ctx) {
         const id = ctx.message.from_id || ctx.message.peer_id;
@@ -188,25 +284,7 @@ module.exports.init_print_menu_scene = function (getText, printMenu, vk_api, boo
         printMenu(ctx);
     }
 
-    function checkCtx(ctx) {
-        ctx.session.upTime=new Date();
-        if (ctx.message.type != 'message_new') {
-            logger.info('Отклоняю событие ' + ctx.message.type);
-            return 'return';
-        }
-        let match=ctx.message.text.match(/\[.*\],? /);
-        if(match){
-            ctx.message.text=ctx.message.text.replace(match[0], '');
-        }
-        if (ctx.message.text == '/reset') {
-            logger.info(`Пользователь id=${ctx.message.from_id || ctx.message.peer_id} хочет сбросить бота`);
-            clear_session(ctx);
-            ctx.reply('Бот успешно сброшен! Напиши что-нибудь, чтобы появилось меню.');
-            ctx.scene.leave();
-            return 'return';
-        }
-        return null;
-    }
+
 
     function selectObjectStep(ctx) {
         const id = ctx.message.from_id || ctx.message.peer_id;
@@ -412,52 +490,67 @@ https://vk.com/gdz_bot`;
             }
 
             ctx.session.task = ctx.message.text;
-            const attachments = await getAnswer(ctx, ctx.session.task).catch(logger.error);
-            if (attachments && attachments!='error') {
-                logger.info(id + ' Отправляю ответ, attachments', attachments);
+           
 
-                const answers = ['Вот твой ответ', 'Лови!', 'Дерзай!', 'Держи ответ'];
-
-
-                bot.sendMessage(ctx.message.peer_id, answers[Math.floor(Math.random() * answers.length)], attachments);
-
-                const answer_num = ctx.session.student.answer_num || 1;
-                const last_agit_day = ctx.session.student.last_agit_day;
-                const friend_reply_times = ctx.session.student.friend_reply_times || 0;
-                const feedback_times = ctx.session.student.feedback_times || 0;
-
-                const is_member_group = await vk_api.isMemberGroup(id).catch(logger.error);
-                //const is_have_feedback = await vk_api.isHaveFeedback(id).catch(logger.error);
-                logger.info(id + ' is day for agit? ' + last_agit_day + ' ' + !last_agit_day || new Date() - last_agit_day > 3 * 24 * 60 * 60 * 1000);
-                if(!last_agit_day || new Date() - last_agit_day > 3 * 24 * 60 * 60 * 1000){
-                    logger.info(id + ` now time for agit, answer_num=${answer_num}, friend_reply_times=${friend_reply_times}, is_member_group ${is_member_group}, feedback_times ${feedback_times}`);
-                    if (answer_num % 1 === 0 && !is_member_group) {
-                        logger.info(`${id} say for subscribe`);
-                        ctx.reply(getText('get_answer_subscribe', {}));
-                    } else if (answer_num % 2 === 0 && friend_reply_times < 3) {
-                        logger.info(`${id} say for reply friends`);
-                        ctx.session.student.upFriendReplyTime();
-                        ctx.reply(getText('get_answer_friend_reply', {}));
-                    } else if (answer_num % 3 === 0 && feedback_times < 5) {
-                        logger.info(`${id} say for feedback`);
-                        ctx.session.student.upFeedbackTime();
-                        ctx.reply(getText('get_answer_feedback', {}));
-                    }
-                    if(answer_num == 3){
-                        ctx.session.student.resetAgit();
-                    } else {
-                        ctx.session.student.upAnswerNum();
-                    }
-                }
-              
-                ctx.session.student.saveStatistic(ctx.session.subject);
-            } else if(attachments && attachments=='error'){
-                ctx.reply('Извини, что-то пошло не так, попробуй еще раз');
-            } else {
-                ctx.reply(getText('error_menu', {}));
+            const ev_names=myEmitter.eventNames();
+            const ev_name=`send_answer_${ctx.message.from_id}`;
+            if(~ev_names.indexOf(ev_name)){
+                logger.info(id + ' пытается снова запросить ответ, игнорирую');
+                ctx.reply('Похоже, ты еще не получил ответ на прошлый вопрос, пожалуйста, подожди');
+                return;
             }
-            printMenu(ctx);
-            logger.info('finally print_menu_scene end, id=' + id + '; message=' + message);
+           
+         
+            myEmitter.once(ev_name,async (attachments) => {
+                logger.info('an event occurred!', attachments);
+                if (attachments && attachments != 'error') {
+                    logger.info(id + ' Отправляю ответ, attachments', attachments);
+    
+                    const answers = ['Вот твой ответ', 'Лови!', 'Дерзай!', 'Держи ответ'];
+    
+    
+                    bot.sendMessage(ctx.message.peer_id, answers[Math.floor(Math.random() * answers.length)], attachments.res);
+    
+                    const answer_num = ctx.session.student.answer_num || 1;
+                    const last_agit_day = ctx.session.student.last_agit_day;
+                    const friend_reply_times = ctx.session.student.friend_reply_times || 0;
+                    const feedback_times = ctx.session.student.feedback_times || 0;
+    
+                    const is_member_group = await vk_api.isMemberGroup(id).catch(logger.error);
+                    //const is_have_feedback = await vk_api.isHaveFeedback(id).catch(logger.error);
+                    logger.info(id + ' is day for agit? ' + last_agit_day + ' ' + !last_agit_day || new Date() - last_agit_day > 3 * 24 * 60 * 60 * 1000);
+                    if (!last_agit_day || new Date() - last_agit_day > 3 * 24 * 60 * 60 * 1000) {
+                        logger.info(id + ` now time for agit, answer_num=${answer_num}, friend_reply_times=${friend_reply_times}, is_member_group ${is_member_group}, feedback_times ${feedback_times}`);
+                        if (answer_num % 1 === 0 && !is_member_group) {
+                            logger.info(`${id} say for subscribe`);
+                            ctx.reply(getText('get_answer_subscribe', {}));
+                        } else if (answer_num % 2 === 0 && friend_reply_times < 3) {
+                            logger.info(`${id} say for reply friends`);
+                            ctx.session.student.upFriendReplyTime();
+                            ctx.reply(getText('get_answer_friend_reply', {}));
+                        } else if (answer_num % 3 === 0 && feedback_times < 5) {
+                            logger.info(`${id} say for feedback`);
+                            ctx.session.student.upFeedbackTime();
+                            ctx.reply(getText('get_answer_feedback', {}));
+                        }
+                        if (answer_num == 3) {
+                            ctx.session.student.resetAgit();
+                        } else {
+                            ctx.session.student.upAnswerNum();
+                        }
+                    }
+    
+                    ctx.session.student.saveStatistic(ctx.session.subject);
+                } else if (attachments && attachments == 'error') {
+                    ctx.reply('Извини, что-то пошло не так, попробуй еще раз');
+                } else {
+                    ctx.reply(getText('error_menu', {}));
+                }
+                
+                printMenu(ctx);
+                logger.info('finally print_menu_scene end, id=' + id + '; message=' + message);
+            });
+            getAnswer(ctx, ctx.session.task, ev_name);
         } catch (e) {
             logger.error('finally print_menu_scene error, id=' + id + '; message=' + message + ';error=' + e.message + ' ' + e.stack);
         }
@@ -470,5 +563,7 @@ https://vk.com/gdz_bot`;
         selectPartStep,
         selectTaskStep
     );
+
+    setInterval(checkQueque, 2000);
     return print_menu_scene;
 };
