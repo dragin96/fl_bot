@@ -3,7 +3,7 @@ const Scene = require('node-vk-bot-api/lib/scene');
 const Markup = require('node-vk-bot-api/lib/markup');
 
 const EventEmitter = require('events');
-
+const fs = require('fs');
 class MyEmitter extends EventEmitter {}
 
 const myEmitter = new MyEmitter();
@@ -25,6 +25,11 @@ module.exports.init_print_menu_scene = function (
     checkCtx,
     clear_session
 ) {
+
+    function getUrlFromTxt(path){
+        return fs.readFileSync(process.env.books_path + path + '/url.txt', 'utf8');
+    }
+
     function isLastPart(ctx) {
         try {
             const class_lvl = ctx.session.class_lvl;
@@ -135,7 +140,8 @@ module.exports.init_print_menu_scene = function (
             if(answer.count == answer.need_count){
                 myEmitter.emit(answer.event_name, {
                     res: answer.res.substr(0, answer.res.length-1),
-                    peer_id: answer.peer_id
+                    peer_id: answer.peer_id,
+                    url: answer.url
                 });
                 delete global_answers[key];
             }
@@ -182,11 +188,15 @@ module.exports.init_print_menu_scene = function (
                             res: '',
                             need_count: que.need_count,
                             event_name: que.event_name,
-                            peer_id: que.peer_id
+                            peer_id: que.peer_id,
+                            url: ''
                         };
                     }
                     global_answers[que.from_id].count++;
                     global_answers[que.from_id].res += 'photo' + res[0].owner_id + '_' + res[0].id + ',';
+                    logger.info('url path ' + que.url_path);
+                    global_answers[que.from_id].url = getUrlFromTxt(que.url_path);
+                    logger.info('url from file' + global_answers[que.from_id].url);
                     return;
                 }catch(e){
                     logger.error('check queque error ' + e);
@@ -241,7 +251,8 @@ module.exports.init_print_menu_scene = function (
                     path: subpath,
                     from_id:  ctx.message.from_id,
                     need_count: book_paths.length,
-                    event_name: event_name
+                    event_name: event_name,
+                    url_path: ctx.session.url_path
                 });
                 
             }
@@ -507,9 +518,11 @@ https://vk.com/gdz_bot`;
                     logger.info(id + ' Отправляю ответ, attachments', attachments);
     
                     const answers = ['Вот твой ответ', 'Лови!', 'Дерзай!', 'Держи ответ'];
+                    
+                    let answer = answers[Math.floor(Math.random() * answers.length)];
+                    attachments.url? answer=answer + '\n\rИсточник: ' + attachments.url : null;
     
-    
-                    bot.sendMessage(ctx.message.peer_id, answers[Math.floor(Math.random() * answers.length)], attachments.res);
+                    bot.sendMessage(ctx.message.peer_id,answer, attachments.res);
     
                     const answer_num = ctx.session.student.answer_num || 1;
                     const last_agit_day = ctx.session.student.last_agit_day;

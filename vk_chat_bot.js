@@ -11,7 +11,7 @@ const books = require('./dirRead.js').structFile(process.env.books_path);
 
 const answer_templates=require('./answer-templates.js').answer_templates;
 module.exports.startVkChatbot = function (logger, Mongo, statistic) {
-    // logger.info('books', books);
+    logger.info('books', books);
 
     function getMenuText(ctx) {
         const class_lvl = ctx.session.class_lvl;
@@ -124,6 +124,7 @@ module.exports.startVkChatbot = function (logger, Mongo, statistic) {
                     return null;
                 }
                 keys = Object.keys(books[class_lvl][subject]);
+                
                 keyboards.push([Markup.button('Экстренная помощь', 'positive', 'stats'), Markup.button('Добавить учебник', 'positive', 'stats')]);
                 keyboards.push([Markup.button('Сменить предмет', 'negative'), Markup.button('Инструкция', 'positive')]);
                 break;
@@ -140,6 +141,7 @@ module.exports.startVkChatbot = function (logger, Mongo, statistic) {
                     });
                     return null;
                 }
+                ctx.session.url_path = `${class_lvl}/${subject}/${author}`;
                 keys = Object.keys(books[class_lvl][subject][author]);
                 keyboards.push([Markup.button('Сменить предмет', 'negative')]);
                 break;
