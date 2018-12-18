@@ -12,7 +12,7 @@ function getFile(path) {
 	});
 	let objFile = {};
 	files.forEach((file) => {
-		let index = file.replace(/\(\d+\).(jpg|png|jpeg|gif)|\.(jpg|png|jpeg|gif)/g, '');
+		let index = file.replace(/\(\d+\).(jpg|png|jpeg|gif|txt)|\.(jpg|png|jpeg|gif|txt)/g, '');
 		if (!Array.isArray(objFile[index])){
 			objFile[index] = [];
 		}
