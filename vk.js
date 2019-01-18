@@ -1,41 +1,15 @@
-const {
-	VK,
-} = require('vk-io');
+
 const request = require('request');
-const fs = require('fs');
+const { VK } = require('vk-io');
 const vk = new VK({
-	app: 6492244,
-    key: '827849fe827849fe827849fe3a821b59aa88278827849fed973d30c12b20a5fe79552b7'
 });
-const {
-	auth
-} = vk;
+ 
+vk.token = process.env.vk_bot_token;
+
+
 const readline = require('readline');
-//const owner_id = '-132152902';
-//let logger;
 let logger = require('./logger.js').logger;
-/*vk.setOptions({
-	app: 6492244,
-	login: process.env.vk_login,
-	password: process.env.vk_password
-});
 
-
-vk.setCaptchaHandler(async ({
-	src
-}, retry) => {
-
-	console.log(process.env.vk_login, process.env.vk_password);
-	const key = await myAwesomeCaptchaHandler(src);
-	console.log('KEY IS', key);
-	try {
-		await retry(key);
-
-		console.log('Капча успешно решена');
-	} catch (error) {
-		console.log('Капча неверная', error);
-	}
-});*/
 /*Для лога*/
 module.exports.setLogger = function (_logger) {
 	logger = _logger;
@@ -65,24 +39,8 @@ async function getTwoFactorCode() {
 		});
 	});
 }
-vk.setTwoFactorHandler(async (payload, retry) => {
-	const code = await getTwoFactorCode();
-
-	try {
-		await retry(code);
-		logger.info('vk.js>>', 'Двух факторная авторизация пройдена');
-	} catch (error) {
-
-		logger.info('vk.js>>', 'Двух факторная авторизация провалилась', error);
-		//const code = await getTwoFactorCode();
-		//await retry(code);
-	}
-});
-
-
 
 const vk_api = {
-	implicitFlow: auth.implicitFlowUser(),
 	/*Запоминаем полученный токен после авторзации*/
 	setToken: (token) => {
 		vk.setToken(token);
@@ -192,4 +150,3 @@ const vk_api = {
 };
 
 module.exports.vk_api = vk_api;
-vk_api.setToken(process.env.vk_bot_token);

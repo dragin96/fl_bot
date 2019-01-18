@@ -537,6 +537,11 @@ https://vk.com/gdz_bot`;
 
                     if(attachments.type == 'text'){
                         answer+='\n\r\n\r' + attachments.res;
+                        while (answer.length >= 4096){
+                            let subanswer = answer.substr(0, 4096);
+                            answer = answer.substr(4096, answer.length - 4097);
+                            bot.sendMessage(ctx.message.peer_id, subanswer);
+                        }
                         bot.sendMessage(ctx.message.peer_id, answer);
                     } else if(attachments.type == 'photo'){
                         bot.sendMessage(ctx.message.peer_id, answer, attachments.res);
